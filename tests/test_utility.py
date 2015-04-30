@@ -7,8 +7,6 @@ from unittest import TestCase
 from mock import patch
 
 from utility import (
-    log,
-    log_error,
     run_shell_command,
     setup_logging,
 )
@@ -32,9 +30,9 @@ class TestUtility(TestCase):
     def test_setup_logging(self):
         with NamedTemporaryFile() as temp_file:
             setup_logging(temp_file.name, log_count=1)
-        logger = logging.getLogger('chaos-monkey')
+        logger = logging.getLogger()
         self.assertEqual(logger.level, logging.DEBUG)
-        self.assertEqual(logger.name, 'chaos-monkey')
+        self.assertEqual(logger.name, 'root')
         handlers = logger.handlers
         self.assertIn(
             type(handlers[0]), [RotatingFileHandler, logging.StreamHandler])
@@ -46,8 +44,8 @@ class TestUtility(TestCase):
         with NamedTemporaryFile() as temp_file:
             with patch('logging.Formatter') as l_mock:
                 setup_logging(temp_file.name, log_count=log_count)
-        logger = logging.getLogger('chaos-monkey')
-        self.assertEqual(logger.name, 'chaos-monkey')
+        logger = logging.getLogger()
+        self.assertEqual(logger.name, 'root')
         l_mock.assert_called_once_with(
             '%(asctime)s %(levelname)s %(message)s', '%Y-%m-%d %H:%M:%S')
 
@@ -56,15 +54,13 @@ class TestUtility(TestCase):
         with NamedTemporaryFile() as temp_file:
             with patch('utility.RotatingFileHandler') as mock:
                 setup_logging(temp_file.name, log_count=log_count)
-                logger = logging.getLogger('chaos-monkey')
-                self.assertEqual(logger.name, 'chaos-monkey')
-        mock.assert_called_once_with(temp_file.name, maxBytes=1024 * 1024 * 2,
-                                     backupCount=log_count)
+        mock.assert_called_once_with(
+            temp_file.name, maxBytes=1024 * 1024 * 512, backupCount=log_count)
 
     def test_log(self):
         with NamedTemporaryFile() as temp_file:
             setup_logging(temp_file.name, log_count=1)
-            log("testing123")
+            logging.info('testing123')
             with open(temp_file.name, 'r') as file_reader:
                 content = file_reader.read()
                 # log format: 2015-04-29 14:03:02 INFO testing123
@@ -74,7 +70,7 @@ class TestUtility(TestCase):
     def test_log_debug(self):
         with NamedTemporaryFile() as temp_file:
             setup_logging(temp_file.name, log_count=1)
-            log("testing123", logging.DEBUG)
+            logging.debug("testing123")
             with open(temp_file.name, 'r') as file_reader:
                 content = file_reader.read()
                 # log format: 2015-04-29 14:03:02 INFO testing123
@@ -84,7 +80,7 @@ class TestUtility(TestCase):
     def test_log_error(self):
         with NamedTemporaryFile() as temp_file:
             setup_logging(temp_file.name, log_count=1)
-            log_error("testing123")
+            logging.error("testing123")
             with open(temp_file.name, 'r') as file_reader:
                 content = file_reader.read()
                 # log format: 2015-04-29 14:03:02 INFO testing123

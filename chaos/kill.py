@@ -1,10 +1,10 @@
+import logging
+
 from chaos_monkey_base import (
     Chaos,
     ChaosMonkeyBase,
 )
 from utility import (
-    log,
-    log_error,
     NotFound,
     run_shell_command,
 )
@@ -30,20 +30,20 @@ class Kill(ChaosMonkeyBase):
         return pids.split(' ')
 
     def kill_jujud(self, quiet_mode=True):
-        log("Kill.kill_jujud")
+        logging.info("Kill.kill_jujud")
         pids = self.get_pids('jujud')
         if not pids:
-            log_error("Jujud process ID not found")
+            logging.error("Jujud process ID not found")
             if not quiet_mode:
                 raise NotFound('Process id not found')
             return
         run_shell_command('kill -s SIGKILL ' + pids[0])
 
     def kill_mongodb(self, quiet_mode=True):
-        log("Kill.kill_mongod")
+        logging.info("Kill.kill_mongod")
         pids = self.get_pids('mongod')
         if not pids:
-            log_error("MongoDB process ID not found")
+            logging.error("MongoDB process ID not found")
             if not quiet_mode:
                 raise NotFound('Process id not found')
             return

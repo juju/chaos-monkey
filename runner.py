@@ -1,10 +1,10 @@
 from argparse import ArgumentParser
+import logging
 from time import time
 
 from chaos_monkey import ChaosMonkey
 from utility import (
     BadRequest,
-    log,
     setup_logging,
 )
 
@@ -45,6 +45,6 @@ if __name__ == '__main__':
                         help='The number of backups to keep.')
     args = parser.parse_args()
     setup_logging(log_path=args.log_path, log_count=args.log_count)
-    log('Chaos monkey started')
+    logging.info('Chaos monkey started')
     random(run_timeout=args.total_timeout,
            enablement_timeout=args.enablement_timeout)
