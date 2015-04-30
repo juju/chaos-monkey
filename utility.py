@@ -29,8 +29,7 @@ def log(log_str, level=logging.INFO):
 
 def log_error(log_str):
     """Simple error logging function"""
-    logger = logging.getLogger('chaos-monkey')
-    logger.error(log_str)
+    log(log_str, level=logging.ERROR)
 
 
 def setup_logging(log_path, log_count):
