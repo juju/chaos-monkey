@@ -4,6 +4,7 @@ from chaos_monkey_base import (
 )
 from utility import (
     log,
+    log_error,
     NotFound,
     run_shell_command,
 )
@@ -32,7 +33,7 @@ class Kill(ChaosMonkeyBase):
         log("Kill.kill_jujud")
         pids = self.get_pids('jujud')
         if not pids:
-            log("Jujud process ID not found")
+            log_error("Jujud process ID not found")
             if not quiet_mode:
                 raise NotFound('Process id not found')
             return
@@ -42,7 +43,7 @@ class Kill(ChaosMonkeyBase):
         log("Kill.kill_mongod")
         pids = self.get_pids('mongod')
         if not pids:
-            log("MongoDB process ID not found")
+            log_error("MongoDB process ID not found")
             if not quiet_mode:
                 raise NotFound('Process id not found')
             return
