@@ -26,10 +26,11 @@ def setup_logging(log_path, log_count):
     formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s',
                                   '%Y-%m-%d %H:%M:%S')
     root_logger = logging.getLogger()
-    rf_handler = RotatingFileHandler(
-        log_path, maxBytes=1024 * 1024 * 512, backupCount=log_count)
-    rf_handler.setFormatter(formatter)
-    root_logger.addHandler(rf_handler)
+    if log_path:
+        rf_handler = RotatingFileHandler(
+            log_path, maxBytes=1024 * 1024 * 512, backupCount=log_count)
+        rf_handler.setFormatter(formatter)
+        root_logger.addHandler(rf_handler)
     s_handler = logging.StreamHandler()
     s_handler.setFormatter(formatter)
     root_logger.addHandler(s_handler)
