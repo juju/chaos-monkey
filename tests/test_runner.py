@@ -7,6 +7,7 @@ from chaos_monkey_base import Chaos
 from runner import (
     random_chaos,
     filter_commands,
+    split_arg_string,
 )
 from tests.test_chaos_monkey import CommonTestBase
 from utility import BadRequest
@@ -248,6 +249,12 @@ class TestRunner(CommonTestBase):
             chaos_monkey=cm_mock.factory.return_value,
             include_group='net,kill', exclude_group='kill',
             include_command='deny-all',  exclude_command='deny-ssh')
+
+    def test_split_arg_string(self):
+        arg = split_arg_string('net,kill')
+        self.assertItemsEqual(arg, ['net', 'kill'])
+        arg = split_arg_string('net')
+        self.assertItemsEqual(arg, ['net'])
 
 
 def add_fake_group(chaos_monkey):

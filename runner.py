@@ -38,25 +38,25 @@ def random_chaos(run_timeout, enablement_timeout, include_group=None,
     cm.shutdown()
 
 
+def split_arg_string(arg_string):
+    return arg_string.split(',') if ',' in arg_string else [arg_string]
+
+
 def filter_commands(chaos_monkey, include_group, exclude_group=None,
                     include_command=None, exclude_command=None):
     if not include_group or include_group == 'all':
         chaos_monkey.include_group('all')
     else:
-        include_group = (include_group.split(',')
-                         if ',' in include_group else [include_group])
+        include_group = split_arg_string(include_group)
         chaos_monkey.include_group(include_group)
     if exclude_group:
-        exclude_group = (exclude_group.split(',')
-                         if ',' in exclude_group else [exclude_group])
+        exclude_group = split_arg_string(exclude_group)
         chaos_monkey.exclude_group(exclude_group)
     if include_command:
-        include_command = (include_command.split(',')
-                           if ',' in include_command else [include_command])
+        include_command = split_arg_string(include_command)
         chaos_monkey.include_command(include_command)
     if exclude_command:
-        exclude_command = (exclude_command.split(',')
-                           if ',' in exclude_command else [exclude_command])
+        exclude_command = split_arg_string(exclude_command)
         chaos_monkey.exclude_command(exclude_command)
 
 

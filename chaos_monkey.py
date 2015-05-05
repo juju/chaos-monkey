@@ -40,23 +40,25 @@ class ChaosMonkey:
         if groups == 'all':
             self.chaos = all_chaos
             return
-        included_groups = []
-        for group in groups:
-            included_groups.extend([c for c in all_chaos if c.group == group])
-        self.chaos = included_groups
+        self.chaos = self.get_groups(groups, all_chaos)
 
     def exclude_group(self, groups):
-        excluded_groups = []
-        for group in groups:
-            excluded_groups.extend([c for c in self.chaos if c.group == group])
+        excluded_groups = self.get_groups(groups, self.chaos)
         for group in excluded_groups:
             self.chaos.remove(group)
+
+    @staticmethod
+    def get_groups(groups, chaos):
+        ret_groups = []
+        for group in groups:
+            ret_groups.extend([c for c in chaos if c.group == group])
+        return ret_groups
 
     def include_command(self, commands):
         all_chaos, _ = ChaosMonkey.get_all_chaos()
         included_commands = [x for x in all_chaos if x.command_str in commands]
         for cmd in included_commands:
-            if not ChaosMonkey._find_command(self.chaos, cmd.command_str):
+            if not self._find_command(self.chaos, cmd.command_str):
                 self.chaos.extend(included_commands)
 
     def exclude_command(self, commands):

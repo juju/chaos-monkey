@@ -279,6 +279,23 @@ class TestChaosMonkey(CommonTestBase):
         command = ChaosMonkey._find_command(all_chaos, 'foo')
         self.assertEqual(command, None)
 
+    def test_get_groups(self):
+        cm = ChaosMonkey.factory()
+        all_chaos, _ = cm.get_all_chaos()
+        group = cm.get_groups(['net'], all_chaos)
+        self.assertGreaterEqual(len(group), 1)
+        self.assertTrue(all(c.group == 'net' for c in group))
+
+    def test_get_groups_multiple_groups(self):
+        cm = ChaosMonkey.factory()
+        all_chaos, _ = cm.get_all_chaos()
+        group = cm.get_groups(['net', 'kill'], all_chaos)
+        self.assertGreaterEqual(len(group), 1)
+        self.assertTrue(
+            all(c.group == 'net' or c.group == 'kill' for c in group))
+        self.assertTrue(any(c.group == 'net' for c in group))
+        self.assertTrue(any(c.group == 'kill' for c in group))
+
     def _get_all_command_str(self, chaos):
         return [c.command_str for c in chaos]
 
