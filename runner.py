@@ -13,7 +13,7 @@ def random_chaos(run_timeout, enablement_timeout, include_group=None,
                  exclude_group=None, include_command=None,
                  exclude_command=None):
     """
-    Runs a random_chaos chaos
+    Runs a random chaos monkey
     :param run_timeout: Total time to run the chaos
     :param enablement_timeout: Timeout between enabling and disabling a chaos.
     Example: disable all the network, wait for timeout and enable it back
