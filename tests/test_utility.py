@@ -1,5 +1,6 @@
 import logging
 from logging.handlers import RotatingFileHandler
+import os
 from subprocess import CalledProcessError
 from tempfile import NamedTemporaryFile
 from unittest import TestCase
@@ -7,12 +8,31 @@ from unittest import TestCase
 from mock import patch
 
 from utility import (
+    ensure_dir,
     run_shell_command,
     setup_logging,
+    temp_dir,
 )
 
 
 class TestUtility(TestCase):
+
+    def test_ensure_dir(self):
+        with temp_dir() as directory:
+            expected_dir = os.path.join(directory, 'new_dir')
+            ensure_dir(expected_dir)
+            self.assertTrue(os.path.isdir(expected_dir))
+
+    def test_ensure_dir_leaves_existing_files(self):
+        with temp_dir() as directory:
+            expected_file = os.path.join(directory, 'some_file')
+            open(expected_file, 'a').close()
+            ensure_dir(directory)
+            self.assertTrue(os.path.isfile(expected_file))
+
+    def test_ensure_dir_raises_when_existing(self):
+        with self.assertRaises(BaseException):
+            ensure_dir('/tmp/nofoo8765/new_dir')
 
     def test_run_shell_command(self):
         with patch('utility.check_output', autospec=True) as mock:
@@ -56,6 +76,11 @@ class TestUtility(TestCase):
                 setup_logging(temp_file.name, log_count=log_count)
         mock.assert_called_once_with(
             temp_file.name, maxBytes=1024 * 1024 * 512, backupCount=log_count)
+
+    def test_temp_dir(self):
+        with temp_dir() as directory:
+            self.assertTrue(os.path.isdir(directory))
+        self.assertFalse(os.path.isdir(directory))
 
     def test_log(self):
         with NamedTemporaryFile() as temp_file:

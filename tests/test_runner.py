@@ -1,13 +1,44 @@
+import os
 from time import time
+import signal
+import subprocess
 from unittest import TestCase
 
 from mock import patch
 
-from utility import BadRequest
-from runner import random
+from utility import (
+    BadRequest,
+    temp_dir,
+)
+from runner import (
+    aquire_lock,
+    random,
+    setup_sig_handlers,
+)
 
 
 class TestRunner(TestCase):
+
+    def test_aquire_lock(self):
+        with temp_dir() as directory:
+            expected_file = os.path.join(directory, 'chaos_runner.lock')
+            expected_pid = str(os.getpid())
+            aquire_lock(directory)
+            self.assertTrue(os.path.exists(expected_file))
+            lock_file = open(expected_file, 'r')
+            pid = lock_file.read()
+            self.assertEqual(pid, expected_pid)
+
+    def test_aquire_lock_fails_without_workspace(self):
+            with self.assertRaises(SystemExit):
+                aquire_lock('/tmp/zqrt1684')
+
+    def test_aquire_lock_fails_when_existing_lockfile(self):
+        with temp_dir() as directory:
+            expected_file = os.path.join(directory, 'chaos_runner.lock')
+            open(expected_file, 'a').close()
+            with self.assertRaises(SystemExit):
+                aquire_lock(directory)
 
     def test_random(self):
         with patch('utility.check_output', autospec=True) as mock:
@@ -79,3 +110,19 @@ class TestRunner(TestCase):
                        autospec=True) as mock:
                 random(run_timeout=3, enablement_timeout=2)
         self.assertEqual(mock.call_args_list[0][1]['timeout'], 2)
+
+    def test_setup_sig_handler_handles_SIGINT(self):
+        setup_sig_handlers()
+        with patch('runner.cleanup') as sh_mock:
+            pid = str(os.getpid())
+            SIGINT = str(signal.SIGINT)
+            subprocess.check_call(['kill', '-s', SIGINT, pid])
+        sh_mock.assert_called_once_with()
+
+    def test_setup_sig_handler_handles_SIGTERM(self):
+        setup_sig_handlers()
+        with patch('runner.cleanup') as sh_mock:
+            pid = str(os.getpid())
+            SIGTERM = str(signal.SIGTERM)
+            subprocess.check_call(['kill', '-s', SIGTERM, pid])
+        sh_mock.assert_called_once_with()
