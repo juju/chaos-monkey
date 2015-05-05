@@ -9,6 +9,7 @@ from time import time
 from chaos_monkey import ChaosMonkey
 from utility import (
     BadRequest,
+    ensure_dir,
     setup_logging,
 )
 
@@ -21,6 +22,7 @@ def aquire_lock(workspace):
     if not os.path.isdir(workspace):
         sys.stderr.write('Not a directory: {}\n'.format(workspace))
         sys.exit(-1)
+    global LOCK_FILE
     LOCK_FILE = '{}/{}'.format(workspace, 'chaos_runner.lock')
     try:
         global LOCK_FD
@@ -92,7 +94,10 @@ if __name__ == '__main__':
                         help='The number of backups to keep.')
     args = parser.parse_args()
     aquire_lock(workspace=args.path)
-    setup_logging(log_path=args.path, log_count=args.log_count)
+    log_dir_path = os.path.join(args.path, 'log')
+    ensure_dir(log_dir_path)
+    log_file = os.path.join(log_dir_path, 'results.log')
+    setup_logging(log_path=log_file, log_count=args.log_count)
     logging.info('Chaos monkey started in {}'.format(args.path))
     random(run_timeout=args.total_timeout,
            enablement_timeout=args.enablement_timeout)
