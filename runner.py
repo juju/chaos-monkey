@@ -76,7 +76,6 @@ def sig_handler(sig_num, frame):
     logging.debug('Handling signal: {}'.format(sig_num))
     global STOP_CHAOS
     STOP_CHAOS = True
-    cleanup()
 
 
 if __name__ == '__main__':
