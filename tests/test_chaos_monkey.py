@@ -301,4 +301,5 @@ class TestChaosMonkey(CommonTestBase):
 
     def _command_strings(self):
         return ['deny-all', 'deny-incoming', 'deny-outgoing', 'allow-ssh',
-                'deny-ssh', 'jujud', 'mongod']
+                'jujud', 'mongod', 'deny-state-server', 'deny-api-server',
+                'deny-sys-log']

@@ -77,44 +77,71 @@ class Net(ChaosMonkeyBase):
         cmd = 'ufw delete deny out to any'
         run_shell_command(cmd)
 
-    def deny_port(self, port=8080):
+    def deny_port(self, port):
         logging.info("Net.deny_port port=%s" % port)
-        cmd = 'ufw deny ' + str(port)
+        cmd = 'ufw deny %s' % port
         run_shell_command(cmd)
+
+    def allow_port(self, port):
+        logging.info("Net.allow_port port=%s" % port)
+        cmd = 'ufw delete deny %s' % port
+        run_shell_command(cmd)
+
+    def deny_state_server(self):
+        logging.info("Net.deny_state_server")
+        self.deny_port(37017)
+
+    def allow_state_server(self):
+        logging.info("Net.allow_state_server")
+        self.allow_port(37017)
+
+    def deny_api_server(self):
+        logging.info("Net.deny_api_server")
+        self.deny_port(17070)
+
+    def allow_api_server(self):
+        logging.info("Net.allow_api_server")
+        self.allow_port(17070)
+
+    def deny_sys_log(self):
+        logging.info("Net.deny_sys_log")
+        self.deny_port(6514)
+
+    def allow_sys_log(self):
+        logging.info("Net.allow_sys_log")
+        self.allow_port(6514)
 
     def get_chaos(self):
         chaos = list()
         chaos.append(
-            Chaos(
-                enable=self.deny_all_incoming_and_outgoing_except_ssh,
-                disable=self.allow_all_incoming_and_outgoing,
-                group=self.group,
-                command_str='deny-all'))
+            self._add_chaos(
+                self.deny_all_incoming_and_outgoing_except_ssh,
+                self.allow_all_incoming_and_outgoing, 'deny-all'))
         chaos.append(
-            Chaos(
-                enable=self.deny_all_incoming_except_ssh,
-                disable=self.allow_all_incoming,
-                group=self.group,
-                command_str='deny-incoming'))
+            self._add_chaos(
+                self.deny_all_incoming_except_ssh, self.allow_all_incoming,
+                'deny-incoming'))
         chaos.append(
-            Chaos(
-                enable=self.deny_all_outgoing_except_ssh,
-                disable=self.allow_all_outgoing,
-                group=self.group,
-                command_str='deny-outgoing'))
+            self._add_chaos(
+                self.deny_all_outgoing_except_ssh, self.allow_all_outgoing,
+                'deny-outgoing'))
+        chaos.append(self._add_chaos(self.allow_ssh, None, 'allow-ssh'))
         chaos.append(
-            Chaos(
-                enable=self.allow_ssh,
-                disable=None,
-                group=self.group,
-                command_str='allow-ssh'))
+            self._add_chaos(
+                self.deny_state_server, self.allow_state_server,
+                'deny-state-server'))
         chaos.append(
-            Chaos(
-                enable=self.deny_ssh,
-                disable=self.allow_ssh,
-                group=self.group,
-                command_str='deny-ssh'))
+            self._add_chaos(
+                self.deny_api_server, self.allow_api_server,
+                'deny-api-server'))
+        chaos.append(
+            self._add_chaos(
+                self.deny_sys_log, self.allow_sys_log, 'deny-sys-log'))
         return chaos
+
+    def _add_chaos(self, enable, disable, command_str):
+        return Chaos(enable=enable, disable=disable, group=self.group,
+                     command_str=command_str)
 
     def shutdown(self):
         self.reset()

@@ -2,15 +2,16 @@ from unittest import TestCase
 
 from mock import patch, call
 
+from chaos_monkey_base import Chaos
 from chaos.net import Net
 
 
 class TestNet(TestCase):
 
-    def _run_test(self, method_call, assert_args):
+    def _run_test(self, method_call, assert_args, **kwargs):
         net = Net()
         with patch('utility.check_output', autospec=True) as mock:
-            getattr(net, method_call)()
+            getattr(net, method_call)(**kwargs)
         mock.assert_called_once_with(assert_args)
 
     def _run_mock_calls(self, method_call, call_list):
@@ -68,23 +69,55 @@ class TestNet(TestCase):
 
     def test_deny_port(self):
         self._run_test(
-            'deny_port', ['ufw', 'deny', '8080'])
+            'deny_port', ['ufw', 'deny', '8080'], port=8080)
+
+    def test_allow_port(self):
+        self._run_test(
+            'allow_port', ['ufw', 'delete', 'deny', '8080'], port=8080)
+
+    def test_deny_state_server(self):
+        self._run_test('deny_state_server', ['ufw', 'deny', '37017'])
+
+    def test_allow_state_server(self):
+        self._run_test(
+            'allow_state_server', ['ufw', 'delete', 'deny', '37017'])
+
+    def test_deny_api_server(self):
+        self._run_test('deny_api_server', ['ufw', 'deny', '17070'])
+
+    def test_allow_api_server(self):
+        self._run_test('allow_api_server', ['ufw', 'delete', 'deny', '17070'])
+
+    def test_deny_sys_log(self):
+        self._run_test('deny_sys_log', ['ufw', 'deny', '6514'])
+
+    def test_allow_sys_log(self):
+        self._run_test('allow_sys_log', ['ufw', 'delete', 'deny', '6514'])
 
     def test_get_chaos(self):
         net = Net()
         chaos = net.get_chaos()
-        self.assertEqual(len(chaos),  5)
+        self.assertEqual(len(chaos),  7)
         self.assertItemsEqual(
             self._get_all_command_str(chaos), self._command_strings())
         for c in chaos:
             self.assertEqual('net', c.group)
+
+    def test_add_chaos(self):
+        net = Net()
+        chaos = net._add_chaos('enable', 'disable', 'command')
+        self.assertIs(type(chaos), Chaos)
+        self.assertEqual(chaos.enable, 'enable')
+        self.assertEqual(chaos.disable, 'disable')
+        self.assertEqual(chaos.group, 'net')
+        self.assertEqual(chaos.command_str, 'command')
 
     def _get_all_command_str(self, chaos):
         return [c.command_str for c in chaos]
 
     def _command_strings(self):
         return ['deny-all', 'deny-incoming', 'deny-outgoing', 'allow-ssh',
-                'deny-ssh']
+                'deny-state-server', 'deny-api-server', 'deny-sys-log']
 
     def test_shutdown(self):
         self._run_test('reset', ['ufw', 'reset'])
