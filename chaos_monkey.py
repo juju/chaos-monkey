@@ -20,7 +20,7 @@ class ChaosMonkey:
     @classmethod
     def factory(cls):
         all_chaos, factory_obj = ChaosMonkey.get_all_chaos()
-        return cls(all_chaos, factory_obj)
+        return cls([], factory_obj)
 
     @staticmethod
     def get_all_chaos():
@@ -32,6 +32,47 @@ class ChaosMonkey:
             all_factory_obj.append(factory_obj)
             all_chaos.extend(factory_obj.get_chaos())
         return all_chaos, all_factory_obj
+
+    def include_group(self, groups):
+        if not groups:
+            return
+        all_chaos, _ = ChaosMonkey.get_all_chaos()
+        if groups == 'all':
+            self.chaos = all_chaos
+            return
+        self.chaos = self.get_groups(groups, all_chaos)
+
+    def exclude_group(self, groups):
+        excluded_groups = self.get_groups(groups, self.chaos)
+        for group in excluded_groups:
+            self.chaos.remove(group)
+
+    @staticmethod
+    def get_groups(groups, chaos):
+        ret_groups = []
+        for group in groups:
+            ret_groups.extend([c for c in chaos if c.group == group])
+        return ret_groups
+
+    def include_command(self, commands):
+        all_chaos, _ = ChaosMonkey.get_all_chaos()
+        included_commands = [x for x in all_chaos if x.command_str in commands]
+        for cmd in included_commands:
+            if not self._find_command(self.chaos, cmd.command_str):
+                self.chaos.extend(included_commands)
+
+    def exclude_command(self, commands):
+        excluded_commands = (
+            [x for x in self.chaos if x.command_str in commands])
+        for cmd in excluded_commands:
+            self.chaos.remove(cmd)
+
+    @staticmethod
+    def _find_command(chaos, command_str):
+        for item in chaos:
+            if item.command_str == command_str:
+                return item
+        return None
 
     def run_random_chaos(self, timeout=2):
         random_chaos = random.choice(self.chaos)

@@ -25,3 +25,6 @@ class Chaos:
         self.disable = disable
         self.group = group
         self.command_str = command_str
+
+    def __eq__(self, other):
+        return self.command_str == other.command_str
