@@ -49,6 +49,10 @@ def setup_logging(log_path, log_count):
     root_logger.setLevel(logging.DEBUG)
 
 
+def split_arg_string(arg_string):
+    return arg_string.split(',') if ',' in arg_string else [arg_string]
+
+
 @contextmanager
 def temp_dir():
     dirname = mkdtemp()
