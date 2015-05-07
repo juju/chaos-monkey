@@ -21,6 +21,7 @@ class Net(ChaosMonkeyBase):
     @classmethod
     def factory(cls):
         inst = cls()
+        inst.default_allow()
         inst.enable_ufw()
         return inst
 
