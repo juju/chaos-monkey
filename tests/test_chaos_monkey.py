@@ -1,5 +1,3 @@
-from unittest import TestCase
-
 from mock import patch, call
 
 from chaos_monkey import (
@@ -8,17 +6,11 @@ from chaos_monkey import (
 )
 from chaos_monkey_base import Chaos
 from chaos.net import Net
+from tests.common_test_base import CommonTestBase
+from tests.test_kill import get_all_kill_commands
+from tests.test_net import get_all_net_commands
 
 __metaclass__ = type
-
-
-class CommonTestBase(TestCase):
-
-    def verify_equals_to_all_chaos(self, chaos):
-        all_chaos, _ = ChaosMonkey.get_all_chaos()
-        self.assertEqual(
-            sorted(all_chaos, key=lambda k: k.command_str),
-            sorted(chaos, key=lambda k: k.command_str))
 
 
 class TestChaosMonkey(CommonTestBase):
@@ -300,6 +292,4 @@ class TestChaosMonkey(CommonTestBase):
         return [c.command_str for c in chaos]
 
     def _command_strings(self):
-        return ['deny-all', 'deny-incoming', 'deny-outgoing', 'allow-ssh',
-                'jujud', 'mongod', 'deny-state-server', 'deny-api-server',
-                'deny-sys-log']
+        return get_all_net_commands() + get_all_kill_commands()

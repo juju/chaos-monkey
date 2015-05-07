@@ -1,12 +1,13 @@
-from unittest import TestCase
-
 from mock import patch, call
 
 from chaos_monkey_base import Chaos
 from chaos.net import Net
+from tests.common_test_base import CommonTestBase
+
+__metaclass__ = type
 
 
-class TestNet(TestCase):
+class TestNet(CommonTestBase):
 
     def _run_test(self, method_call, assert_args, **kwargs):
         net = Net()
@@ -97,27 +98,19 @@ class TestNet(TestCase):
     def test_get_chaos(self):
         net = Net()
         chaos = net.get_chaos()
-        self.assertEqual(len(chaos),  7)
         self.assertItemsEqual(
-            self._get_all_command_str(chaos), self._command_strings())
+            self.get_command_str(chaos), get_all_net_commands())
         for c in chaos:
             self.assertEqual('net', c.group)
 
     def test_add_chaos(self):
         net = Net()
-        chaos = net._add_chaos('enable', 'disable', 'command')
+        chaos = net.create_chaos('enable', 'disable', 'command')
         self.assertIs(type(chaos), Chaos)
         self.assertEqual(chaos.enable, 'enable')
         self.assertEqual(chaos.disable, 'disable')
         self.assertEqual(chaos.group, 'net')
         self.assertEqual(chaos.command_str, 'command')
-
-    def _get_all_command_str(self, chaos):
-        return [c.command_str for c in chaos]
-
-    def _command_strings(self):
-        return ['deny-all', 'deny-incoming', 'deny-outgoing', 'allow-ssh',
-                'deny-state-server', 'deny-api-server', 'deny-sys-log']
 
     def test_shutdown(self):
         self._run_test('reset', ['ufw', 'reset'])
@@ -130,3 +123,8 @@ class TestNet(TestCase):
 
     def _default_allow_call(self):
         return call(['ufw', 'default', 'allow'])
+
+
+def get_all_net_commands():
+    return ['deny-all', 'deny-incoming', 'deny-outgoing', 'allow-ssh',
+            'deny-state-server', 'deny-api-server', 'deny-sys-log']

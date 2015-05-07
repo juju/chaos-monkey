@@ -114,32 +114,32 @@ class Net(ChaosMonkeyBase):
     def get_chaos(self):
         chaos = list()
         chaos.append(
-            self._add_chaos(
+            self.create_chaos(
                 self.deny_all_incoming_and_outgoing_except_ssh,
                 self.allow_all_incoming_and_outgoing, 'deny-all'))
         chaos.append(
-            self._add_chaos(
+            self.create_chaos(
                 self.deny_all_incoming_except_ssh, self.allow_all_incoming,
                 'deny-incoming'))
         chaos.append(
-            self._add_chaos(
+            self.create_chaos(
                 self.deny_all_outgoing_except_ssh, self.allow_all_outgoing,
                 'deny-outgoing'))
-        chaos.append(self._add_chaos(self.allow_ssh, None, 'allow-ssh'))
+        chaos.append(self.create_chaos(self.allow_ssh, None, 'allow-ssh'))
         chaos.append(
-            self._add_chaos(
+            self.create_chaos(
                 self.deny_state_server, self.allow_state_server,
                 'deny-state-server'))
         chaos.append(
-            self._add_chaos(
+            self.create_chaos(
                 self.deny_api_server, self.allow_api_server,
                 'deny-api-server'))
         chaos.append(
-            self._add_chaos(
+            self.create_chaos(
                 self.deny_sys_log, self.allow_sys_log, 'deny-sys-log'))
         return chaos
 
-    def _add_chaos(self, enable, disable, command_str):
+    def create_chaos(self, enable, disable, command_str):
         return Chaos(enable=enable, disable=disable, group=self.group,
                      command_str=command_str)
 
