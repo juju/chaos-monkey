@@ -20,7 +20,9 @@ class Net(ChaosMonkeyBase):
 
     @classmethod
     def factory(cls):
-        return cls()
+        inst = cls()
+        inst.enable_ufw()
+        return inst
 
     def reset(self):
         logging.info("Net.reset ")
@@ -82,6 +84,16 @@ class Net(ChaosMonkeyBase):
         cmd = 'ufw deny ' + str(port)
         run_shell_command(cmd)
 
+    def enable_ufw(self):
+        logging.info("Net.enable_ufw")
+        cmd = 'ufw enable'
+        run_shell_command(cmd)
+
+    def disable_ufw(self):
+        logging.info("Net.disable_ufw")
+        cmd = 'ufw disable'
+        run_shell_command(cmd)
+
     def get_chaos(self):
         chaos = list()
         chaos.append(
@@ -118,3 +130,4 @@ class Net(ChaosMonkeyBase):
 
     def shutdown(self):
         self.reset()
+        self.disable_ufw()
