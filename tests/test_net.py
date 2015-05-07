@@ -87,7 +87,9 @@ class TestNet(TestCase):
                 'deny-ssh']
 
     def test_shutdown(self):
-        self._run_test('reset', ['ufw', 'reset'])
+        self._run_mock_calls('shutdown',
+            [call(['ufw', 'reset']),
+             call(['ufw', 'disable'])])
 
     def _allow_ssh_call(self):
         return call(['ufw', 'allow', 'ssh'])
