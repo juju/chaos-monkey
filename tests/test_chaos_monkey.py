@@ -44,15 +44,17 @@ class TestChaosMonkey(CommonTestBase):
         cm = ChaosMonkey.factory()
         cm.include_group('all')
         with patch('utility.check_output', autospec=True) as mock:
-            cm.run_chaos('net', 'allow-ssh', timeout=0)
-        mock.assert_called_once_with(['ufw', 'allow', 'ssh'])
+            cm.run_chaos('net', 'deny-state-server', timeout=0)
+        self.assertEqual(mock.mock_calls,
+                        [call(['ufw', 'deny', '37017']),
+                         call(['ufw', 'delete', 'deny', '37017'])])
 
     def test_run_chaos_passes_timeout(self):
         cm = ChaosMonkey.factory()
         cm.include_group('all')
         with patch('chaos_monkey.ChaosMonkey._run_command',
                    autospec=True) as mock:
-            cm.run_chaos('net', 'allow-ssh', timeout=0)
+            cm.run_chaos('net', 'deny-all', timeout=0)
         self.assertEqual(0, mock.call_args_list[0][1]['timeout'])
 
     def test_run_chaos_raises_for_command_str(self):
@@ -70,14 +72,14 @@ class TestChaosMonkey(CommonTestBase):
         with patch('utility.check_output', autospec=True):
             with self.assertRaisesRegexp(
                     NotFound,
-                    "Command not found: group: bar command_str:allow-ssh"):
-                cm.run_chaos('bar', 'allow-ssh', timeout=0)
+                    "Command not found: group: bar command_str:deny-all"):
+                cm.run_chaos('bar', 'deny-all', timeout=0)
 
     def test_run_command(self):
         cm = ChaosMonkey.factory()
         net = Net()
         chaos = Chaos(enable=net.deny_ssh, disable=net.allow_ssh,
-                      group='net', command_str='deny-ssh')
+                      group='net', command_str='deny-ssh', description='fake')
         with patch('utility.check_output', autospec=True) as mock:
             cm._run_command(chaos, timeout=0)
         self.assertEqual(mock.mock_calls, [
@@ -173,7 +175,7 @@ class TestChaosMonkey(CommonTestBase):
             all(c.command_str == 'deny-incoming' for c in cm.chaos))
 
     def test_include_command_multiple_commands(self):
-        commands = ['deny-incoming', 'allow-ssh']
+        commands = ['deny-incoming', 'deny-all']
         cm = ChaosMonkey.factory()
         cm.include_command(commands)
         self.assertEqual(len(cm.chaos), 2)
@@ -186,15 +188,15 @@ class TestChaosMonkey(CommonTestBase):
         self.assertEqual(cm.chaos, [])
 
     def test_exclude_command(self):
-        commands = ['allow-ssh']
+        commands = ['deny-all']
         cm = ChaosMonkey.factory()
         cm.include_group('all')
         cm.exclude_command(commands)
         self.assertGreaterEqual(len(cm.chaos), 1)
-        self.assertTrue(all(c.command_str != 'allow-ssh' for c in cm.chaos))
+        self.assertTrue(all(c.command_str != 'deny-all' for c in cm.chaos))
 
     def test_exclude_commands(self):
-        commands = ['allow-ssh', 'jujud']
+        commands = ['deny-all', 'jujud']
         cm = ChaosMonkey.factory()
         cm.include_group('all')
         cm.exclude_command(commands)
@@ -202,7 +204,7 @@ class TestChaosMonkey(CommonTestBase):
         self.assertTrue(all(c.command_str not in commands for c in cm.chaos))
 
     def test_include_and_exclude_commands(self):
-        commands = ['allow-ssh', 'jujud']
+        commands = ['deny-all', 'jujud']
         cm = ChaosMonkey.factory()
         cm.include_command(commands)
         self.assertGreaterEqual(len(cm.chaos), 1)
@@ -250,7 +252,7 @@ class TestChaosMonkey(CommonTestBase):
 
     def test_exclude_group_and_include_command(self):
         groups = ['net']
-        commands = ['allow-ssh']
+        commands = ['deny-all']
         cm = ChaosMonkey.factory()
         cm.include_group('all')
         cm.exclude_group(groups)
@@ -258,7 +260,7 @@ class TestChaosMonkey(CommonTestBase):
         self.assertTrue(all(c.group != 'net' for c in cm.chaos))
         cm.include_command(commands)
         self.assertGreaterEqual(len(cm.chaos), 1)
-        self.assertTrue(any(c.command_str == 'allow-ssh' for c in cm.chaos))
+        self.assertTrue(any(c.command_str == 'deny-all' for c in cm.chaos))
         self.assertTrue(any(c.group == 'net' for c in cm.chaos))
 
     def test_find_command(self):

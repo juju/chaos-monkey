@@ -20,11 +20,12 @@ class ChaosMonkeyBase:
 
 class Chaos:
 
-    def __init__(self, enable, disable, group, command_str):
+    def __init__(self, enable, disable, group, command_str, description):
         self.enable = enable
         self.disable = disable
         self.group = group
         self.command_str = command_str
+        self.description = description
 
     def __eq__(self, other):
         return self.command_str == other.command_str

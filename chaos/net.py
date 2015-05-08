@@ -116,32 +116,36 @@ class Net(ChaosMonkeyBase):
         chaos.append(
             self.create_chaos(
                 self.deny_all_incoming_and_outgoing_except_ssh,
-                self.allow_all_incoming_and_outgoing, 'deny-all'))
+                self.allow_all_incoming_and_outgoing, 'deny-all',
+                'Deny all incoming and outgoing network traffic except ssh'))
         chaos.append(
             self.create_chaos(
                 self.deny_all_incoming_except_ssh, self.allow_all_incoming,
-                'deny-incoming'))
+                'deny-incoming', 'Deny all incoming network traffic except ssh'
+            ))
         chaos.append(
             self.create_chaos(
                 self.deny_all_outgoing_except_ssh, self.allow_all_outgoing,
-                'deny-outgoing'))
-        chaos.append(self.create_chaos(self.allow_ssh, None, 'allow-ssh'))
+                'deny-outgoing', 'Deny all outgoing network traffic except ssh'
+            ))
         chaos.append(
             self.create_chaos(
                 self.deny_state_server, self.allow_state_server,
-                'deny-state-server'))
+                'deny-state-server',
+                'Deny network traffic to Juju State-Server'))
         chaos.append(
             self.create_chaos(
                 self.deny_api_server, self.allow_api_server,
-                'deny-api-server'))
+                'deny-api-server', 'Deny network traffic to Juju API Server'))
         chaos.append(
             self.create_chaos(
-                self.deny_sys_log, self.allow_sys_log, 'deny-sys-log'))
+                self.deny_sys_log, self.allow_sys_log, 'deny-sys-log',
+                'Deny network traffic to Juju SysLog'))
         return chaos
 
-    def create_chaos(self, enable, disable, command_str):
+    def create_chaos(self, enable, disable, command_str, description):
         return Chaos(enable=enable, disable=disable, group=self.group,
-                     command_str=command_str)
+                     command_str=command_str, description=description)
 
     def shutdown(self):
         self.reset()

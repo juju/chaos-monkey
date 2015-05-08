@@ -258,5 +258,5 @@ class TestRunner(CommonTestBase):
 
 
 def add_fake_group(chaos_monkey):
-    chaos = Chaos(None, None, 'fake_group', 'fake_command_str')
+    chaos = Chaos(None, None, 'fake_group', 'fake_command_str', 'description')
     chaos_monkey.append(chaos)
