@@ -103,7 +103,7 @@ class TestNet(CommonTestBase):
         for c in chaos:
             self.assertEqual('net', c.group)
 
-    def test_add_chaos(self):
+    def test_create_chaos(self):
         net = Net()
         chaos = net.create_chaos('enable', 'disable', 'command')
         self.assertIs(type(chaos), Chaos)
