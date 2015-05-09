@@ -57,14 +57,14 @@ class Kill(ChaosMonkeyBase):
                 disable=None,
                 group=self.group,
                 command_str='jujud',
-                description='One of Jujud process has been killed'))
+                description='Jujud process has been killed.'))
         chaos.append(
             Chaos(
                 enable=self.kill_jujud,
                 disable=None,
                 group=self.group,
                 command_str='mongod',
-                description='Mongod process has been killed'))
+                description='Mongod process has been killed.'))
         return chaos
 
     def shutdown(self):

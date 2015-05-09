@@ -1,3 +1,4 @@
+import logging
 import random
 from time import sleep
 
@@ -21,6 +22,14 @@ class ChaosMonkey:
     def factory(cls):
         all_chaos, factory_obj = ChaosMonkey.get_all_chaos()
         return cls([], factory_obj)
+
+    @property
+    def command_tag(self):
+        return ":CHAOS_CMD:"
+
+    @property
+    def description_tag(self):
+        return ":CHAOS_DSCR:"
 
     @staticmethod
     def get_all_chaos():
@@ -89,6 +98,9 @@ class ChaosMonkey:
                 group, command_str))
 
     def _run_command(self, chaos, timeout=2):
+        logging.info("%s %s %s %s" % (
+            self.command_tag, chaos.command_str, self.description_tag,
+            chaos.description))
         chaos.enable()
         sleep(timeout)
         if chaos.disable:

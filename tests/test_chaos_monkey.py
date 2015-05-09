@@ -46,8 +46,8 @@ class TestChaosMonkey(CommonTestBase):
         with patch('utility.check_output', autospec=True) as mock:
             cm.run_chaos('net', 'deny-state-server', timeout=0)
         self.assertEqual(mock.mock_calls,
-                        [call(['ufw', 'deny', '37017']),
-                         call(['ufw', 'delete', 'deny', '37017'])])
+                         [call(['ufw', 'deny', '37017']),
+                          call(['ufw', 'delete', 'deny', '37017'])])
 
     def test_run_chaos_passes_timeout(self):
         cm = ChaosMonkey.factory()

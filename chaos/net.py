@@ -117,30 +117,31 @@ class Net(ChaosMonkeyBase):
             self.create_chaos(
                 self.deny_all_incoming_and_outgoing_except_ssh,
                 self.allow_all_incoming_and_outgoing, 'deny-all',
-                'Deny all incoming and outgoing network traffic except ssh'))
+                'Deny all incoming and outgoing network traffic except ssh.'))
         chaos.append(
             self.create_chaos(
                 self.deny_all_incoming_except_ssh, self.allow_all_incoming,
-                'deny-incoming', 'Deny all incoming network traffic except ssh'
-            ))
+                'deny-incoming',
+                'Deny all incoming network traffic except ssh.'))
         chaos.append(
             self.create_chaos(
                 self.deny_all_outgoing_except_ssh, self.allow_all_outgoing,
-                'deny-outgoing', 'Deny all outgoing network traffic except ssh'
-            ))
+                'deny-outgoing',
+                'Deny all outgoing network traffic except ssh.'))
         chaos.append(
             self.create_chaos(
                 self.deny_state_server, self.allow_state_server,
                 'deny-state-server',
-                'Deny network traffic to Juju State-Server'))
+                'Deny network traffic to the Juju State-Server'))
         chaos.append(
             self.create_chaos(
                 self.deny_api_server, self.allow_api_server,
-                'deny-api-server', 'Deny network traffic to Juju API Server'))
+                'deny-api-server',
+                'Deny network traffic to the Juju API Server.'))
         chaos.append(
             self.create_chaos(
                 self.deny_sys_log, self.allow_sys_log, 'deny-sys-log',
-                'Deny network traffic to Juju SysLog'))
+                'Deny network traffic to the Juju SysLog.'))
         return chaos
 
     def create_chaos(self, enable, disable, command_str, description):
