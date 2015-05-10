@@ -105,12 +105,13 @@ class TestNet(CommonTestBase):
 
     def test_create_chaos(self):
         net = Net()
-        chaos = net.create_chaos('enable', 'disable', 'command')
+        chaos = net.create_chaos('enable', 'disable', 'command', 'description')
         self.assertIs(type(chaos), Chaos)
         self.assertEqual(chaos.enable, 'enable')
         self.assertEqual(chaos.disable, 'disable')
         self.assertEqual(chaos.group, 'net')
         self.assertEqual(chaos.command_str, 'command')
+        self.assertEqual(chaos.description, 'description')
 
     def test_shutdown(self):
         self._run_test('reset', ['ufw', 'reset'])
@@ -126,5 +127,5 @@ class TestNet(CommonTestBase):
 
 
 def get_all_net_commands():
-    return ['deny-all', 'deny-incoming', 'deny-outgoing', 'allow-ssh',
-            'deny-state-server', 'deny-api-server', 'deny-sys-log']
+    return ['deny-all', 'deny-incoming', 'deny-outgoing',  'deny-state-server',
+            'deny-api-server', 'deny-sys-log']
