@@ -51,6 +51,7 @@ class Runner:
         os.fsync(lock_fd)
         os.close(lock_fd)
         self.workspace_lock = True
+        self.verify_lock()
 
     def verify_lock(self):
         if not self.workspace_lock:
@@ -171,7 +172,6 @@ if __name__ == '__main__':
                             dry_run=args.dry_run)
     setup_sig_handlers(runner.sig_handler)
     runner.acquire_lock()
-    runner.verify_lock()
     logging.info('Chaos monkey started in {}'.format(args.path))
     logging.debug('Dry run is set to {}'.format(args.dry_run))
     runner.random_chaos(run_timeout=args.total_timeout,
