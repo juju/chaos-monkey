@@ -10,27 +10,31 @@ from chaos_monkey import ChaosMonkey
 from utility import (
     BadRequest,
     ensure_dir,
+    NotFound,
     setup_logging,
     split_arg_string,
 )
 
-stop_chaos = False
-lock_fd = None
-lock_file = None
-
 
 class Runner:
-    def __init__(self, workspace, log_count, dry_run=False):
-        self.stop_chaos = False
+    def __init__(self, workspace, chaos_monkey, log_count=1, dry_run=False):
         self.workspace = workspace
-        self.aquire_lock()
+        self.log_count = log_count
         self.dry_run = dry_run
-        log_dir_path = os.path.join(self.workspace, 'log')
+        self.stop_chaos = False
+        self.workspace_lock = False
+        self.chaos_monkey = chaos_monkey
+
+    @classmethod
+    def factory(cls, workspace, log_count=1, dry_run=False):
+        log_dir_path = os.path.join(workspace, 'log')
         ensure_dir(log_dir_path)
         log_file = os.path.join(log_dir_path, 'results.log')
         setup_logging(log_path=log_file, log_count=log_count)
+        chaos_monkey = ChaosMonkey.factory()
+        return cls(workspace, chaos_monkey, log_count, dry_run)
 
-    def aquire_lock(self):
+    def acquire_lock(self):
         if not os.path.isdir(self.workspace):
             sys.stderr.write('Not a directory: {}\n'.format(self.workspace))
             sys.exit(-1)
@@ -46,6 +50,19 @@ class Runner:
         os.write(lock_fd, str(os.getpid()))
         os.fsync(lock_fd)
         os.close(lock_fd)
+        self.workspace_lock = True
+
+    def verify_lock(self):
+        if not self.workspace_lock:
+            raise NotFound("Workspace is not locked.")
+        lock_file = open(self.lock_file, 'r')
+        pid = lock_file.read()
+        assert type(pid) is str
+        lock_file.close()
+        expected_pid = str(os.getpid())
+        if pid != expected_pid:
+            raise NotFound('Expected pid: {} in {}, found: {}'.format(
+                expected_pid, self.lock_file, pid))
 
     def random_chaos(self, run_timeout, enablement_timeout, include_group=None,
                      exclude_group=None, include_command=None,
@@ -65,42 +82,45 @@ class Runner:
         if enablement_timeout < 0:
             raise BadRequest("Invalid value for enablement timeout")
 
-        cm = ChaosMonkey.factory()
-        self.filter_commands(
-            chaos_monkey=cm, include_group=include_group,
-            exclude_group=exclude_group, include_command=include_command,
-            exclude_command=exclude_command)
+        self.filter_commands(include_group=include_group,
+                             exclude_group=exclude_group,
+                             include_command=include_command,
+                             exclude_command=exclude_command)
         expire_time = time() + run_timeout
         while time() < expire_time:
             if self.stop_chaos:
                 break
             if not self.dry_run:
-                logging.debug('BOOM')
-                # cm.run_random_chaos(enablement_timeout)
+                self.chaos_monkey.run_random_chaos(enablement_timeout)
         if not self.dry_run:
-            cm.shutdown()
+            self.chaos_monkey.shutdown()
 
     def cleanup(self):
         if self.lock_file:
-            os.unlink(self.lock_file)
+            try:
+                os.unlink(self.lock_file)
+            except OSError as e:
+                if e.errno != errno.ENOENT:
+                            raise
+                logging.debug('Lock file not found: {}'.format(self.lock_file))
         logging.info('Chaos monkey stopped')
 
-    def filter_commands(self, chaos_monkey, include_group, exclude_group=None,
+    def filter_commands(self, include_group, exclude_group=None,
                         include_command=None, exclude_command=None):
         if not include_group or include_group == 'all':
-            chaos_monkey.include_group('all')
+            self.chaos_monkey.include_group('all')
         else:
             include_group = split_arg_string(include_group)
-            chaos_monkey.include_group(include_group)
+            self.chaos_monkey.include_group(include_group)
         if exclude_group:
             exclude_group = split_arg_string(exclude_group)
-            chaos_monkey.exclude_group(exclude_group)
+            self.chaos_monkey.exclude_group(exclude_group)
         if include_command:
             include_command = split_arg_string(include_command)
-            chaos_monkey.include_command(include_command)
+            self.chaos_monkey.include_command(include_command)
         if exclude_command:
             exclude_command = split_arg_string(exclude_command)
-            chaos_monkey.exclude_command(exclude_command)
+            self.chaos_monkey.exclude_command(exclude_command)
 
     def sig_handler(self, sig_num, frame):
         """Set the stop_chaos flag, to request a safe exit."""
@@ -147,8 +167,11 @@ if __name__ == '__main__':
         '-dr', '--dry-run', dest='dry_run', action='store_true',
         help='Do not actually run chaos operations.')
     args = parser.parse_args()
-    runner = Runner(args.path, args.log_count, dry_run=args.dry_run)
+    runner = Runner.factory(workspace=args.path, log_count=args.log_count,
+                            dry_run=args.dry_run)
     setup_sig_handlers(runner.sig_handler)
+    runner.acquire_lock()
+    runner.verify_lock()
     logging.info('Chaos monkey started in {}'.format(args.path))
     logging.debug('Dry run is set to {}'.format(args.dry_run))
     runner.random_chaos(run_timeout=args.total_timeout,
