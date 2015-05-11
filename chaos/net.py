@@ -1,5 +1,3 @@
-import logging
-
 from chaos_monkey_base import (
     Chaos,
     ChaosMonkeyBase,
@@ -22,94 +20,107 @@ class Net(ChaosMonkeyBase):
     def factory(cls):
         return cls()
 
+    @property
+    def default_deny_str(self):
+        return "ufw default deny"
+
+    @property
+    def default_allow_str(self):
+        return "ufw default allow"
+
+    @property
+    def allow_ssh_str(self):
+        return 'ufw allow ssh'
+
+    @property
+    def delete_ssh_str(self):
+        return 'ufw delete allow ssh'
+
+    @property
+    def deny_out_to_any_str(self):
+        return 'ufw deny out to any'
+
+    @property
+    def delete_deny_out_to_any_str(self):
+        return 'ufw delete deny out to any'
+
     def reset(self):
-        logging.info("Net.reset ")
         cmd = 'ufw reset'
-        run_shell_command(cmd)
-
-    def default_deny(self):
-        logging.info("Net.default_deny")
-        cmd = "ufw default deny"
-        run_shell_command(cmd)
-
-    def default_allow(self):
-        logging.info("Net.default_allow")
-        cmd = "ufw default allow"
-        run_shell_command(cmd)
-
-    def allow_ssh(self):
-        logging.info("Net.allow_ssh")
-        cmd = 'ufw allow ssh'
-        run_shell_command(cmd)
-
-    def deny_ssh(self):
-        logging.info("Net.deny_ssh")
-        cmd = 'ufw deny ssh'
-        run_shell_command(cmd)
+        self.run_command(cmd)
 
     def deny_all_incoming_and_outgoing_except_ssh(self):
-        logging.info("Net.deny_all_incoming_and_outgoing_except_ssh")
-        self.deny_all_incoming_except_ssh()
-        self.deny_all_outgoing_except_ssh()
+        cmd = [self.allow_ssh_str, self.default_deny_str,
+               self.deny_out_to_any_str]
+        self.start_firewall(cmd)
 
     def allow_all_incoming_and_outgoing(self):
-        logging.info("Net.allow_all_incoming_and_outgoing")
-        self.allow_all_incoming()
-        self.allow_all_outgoing()
+        cmd = [self.delete_ssh_str, self.default_allow_str,
+               self.delete_deny_out_to_any_str]
+        self.stop_firewall(cmd)
 
     def deny_all_incoming_except_ssh(self):
-        logging.info("Net.deny_all_incoming_except_ssh")
-        self.allow_ssh()
-        self.default_deny()
+        cmd = [self.allow_ssh_str, self.default_deny_str]
+        self.start_firewall(cmd)
 
     def allow_all_incoming(self):
-        logging.info("Net.allow_all_incoming")
-        self.default_allow()
+        cmd = [self.delete_ssh_str, self.default_allow_str]
+        self.stop_firewall(cmd)
 
     def deny_all_outgoing_except_ssh(self):
-        logging.info("Net.deny_all_outgoing_except_ssh")
-        self.allow_ssh()
-        cmd = 'ufw deny out to any'
-        run_shell_command(cmd)
+        cmd = [self.allow_ssh_str, self.deny_out_to_any_str]
+        self.start_firewall(cmd)
 
     def allow_all_outgoing(self):
-        logging.info("Net.allow_all_outgoing")
-        cmd = 'ufw delete deny out to any'
-        run_shell_command(cmd)
+        cmd = [self.delete_ssh_str, self.delete_deny_out_to_any_str]
+        self.stop_firewall(cmd)
 
     def deny_port(self, port):
-        logging.info("Net.deny_port port=%s" % port)
         cmd = 'ufw deny %s' % port
-        run_shell_command(cmd)
+        self.start_firewall(cmd)
 
     def allow_port(self, port):
-        logging.info("Net.allow_port port=%s" % port)
         cmd = 'ufw delete deny %s' % port
-        run_shell_command(cmd)
+        self.stop_firewall(cmd)
 
     def deny_state_server(self):
-        logging.info("Net.deny_state_server")
         self.deny_port(37017)
 
     def allow_state_server(self):
-        logging.info("Net.allow_state_server")
         self.allow_port(37017)
 
     def deny_api_server(self):
-        logging.info("Net.deny_api_server")
         self.deny_port(17070)
 
     def allow_api_server(self):
-        logging.info("Net.allow_api_server")
         self.allow_port(17070)
 
     def deny_sys_log(self):
-        logging.info("Net.deny_sys_log")
         self.deny_port(6514)
 
     def allow_sys_log(self):
-        logging.info("Net.allow_sys_log")
         self.allow_port(6514)
+
+    def enable_ufw(self):
+        cmd = 'ufw enable'
+        run_shell_command(cmd)
+
+    def disable_ufw(self):
+        cmd = 'ufw disable'
+        run_shell_command(cmd)
+
+    def start_firewall(self, commands):
+        self.run_command(self.default_allow_str)
+        self.run_command(commands)
+        self.enable_ufw()
+
+    def stop_firewall(self, command):
+        self.run_command(command)
+        self.disable_ufw()
+
+    def run_command(self, command):
+        commands = [command] if type(command) is str else command
+        for cmd in commands:
+            run_shell_command(cmd)
 
     def get_chaos(self):
         chaos = list()

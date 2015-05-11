@@ -14,6 +14,16 @@ from utility import (
 
 class TestUtility(TestCase):
 
+    def setUp(self):
+        self.logger = logging.getLogger()
+        self.orig_handlers = self.logger.handlers
+        self.logger.handlers = []
+        self.orig_level = self.logger.level
+
+    def tearDown(self):
+        self.logger.handlers = self.orig_handlers
+        self.logger.level = self.orig_level
+
     def test_run_shell_command(self):
         with patch('utility.check_output', autospec=True) as mock:
             run_shell_command('foo')
