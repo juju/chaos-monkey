@@ -1,12 +1,25 @@
 from __future__ import print_function
 
+import errno
 import logging
 from logging.handlers import RotatingFileHandler
-
+import os
+from shutil import rmtree
 from subprocess import (
     CalledProcessError,
     check_output,
 )
+from tempfile import mkdtemp
+
+from contextlib import contextmanager
+
+
+def ensure_dir(path):
+    try:
+        os.mkdir(path)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
 
 
 def run_shell_command(cmd, quiet_mode=True):
@@ -36,15 +49,24 @@ def setup_logging(log_path, log_count):
     root_logger.setLevel(logging.DEBUG)
 
 
+def split_arg_string(arg_string):
+    return arg_string.split(',') if ',' in arg_string else [arg_string]
+
+
+@contextmanager
+def temp_dir():
+    dirname = mkdtemp()
+    try:
+        yield dirname
+    finally:
+        rmtree(dirname)
+
+
 class NotFound(Exception):
-    """
-    Requested resource not found
-    """
+    """Requested resource not found"""
     error_code = 404
 
 
 class BadRequest(Exception):
-    """
-    Incorrectly formatted  request
-    """
+    """Incorrectly formatted  request"""
     error_code = 400
