@@ -1,5 +1,3 @@
-import logging
-
 from mock import patch, call
 
 from chaos.kill import Kill
@@ -9,14 +7,7 @@ from tests.common_test_base import CommonTestBase
 class TestKill(CommonTestBase):
 
     def setUp(self):
-        self.logger = logging.getLogger()
-        self.orig_handlers = self.logger.handlers
-        self.logger.handlers = []
-        self.orig_level = self.logger.level
-
-    def tearDown(self):
-        self.logger.handlers = self.orig_handlers
-        self.logger.level = self.orig_level
+        self.setup_test_logging()
 
     def test_get_pids(self):
         kill = Kill()

@@ -2,27 +2,20 @@ import logging
 from logging.handlers import RotatingFileHandler
 from subprocess import CalledProcessError
 from tempfile import NamedTemporaryFile
-from unittest import TestCase
 
 from mock import patch
 
+from common_test_base import CommonTestBase
 from utility import (
     run_shell_command,
     setup_logging,
 )
 
 
-class TestUtility(TestCase):
+class TestUtility(CommonTestBase):
 
     def setUp(self):
-        self.logger = logging.getLogger()
-        self.orig_handlers = self.logger.handlers
-        self.logger.handlers = []
-        self.orig_level = self.logger.level
-
-    def tearDown(self):
-        self.logger.handlers = self.orig_handlers
-        self.logger.level = self.orig_level
+        self.setup_test_logging()
 
     def test_run_shell_command(self):
         with patch('utility.check_output', autospec=True) as mock:
