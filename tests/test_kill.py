@@ -1,11 +1,10 @@
-from unittest import TestCase
-
 from mock import patch, call
 
 from chaos.kill import Kill
+from tests.common_test_base import CommonTestBase
 
 
-class TestKill(TestCase):
+class TestKill(CommonTestBase):
 
     def test_get_pids(self):
         kill = Kill()
@@ -38,4 +37,9 @@ class TestKill(TestCase):
     def test_get_chaos(self):
         kill = Kill()
         chaos = kill.get_chaos()
-        self.assertEqual(len(chaos), 2)
+        self.assertItemsEqual(
+            self.get_command_str(chaos), get_all_kill_commands())
+
+
+def get_all_kill_commands():
+    return ['jujud', 'mongod']
