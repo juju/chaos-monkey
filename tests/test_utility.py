@@ -3,10 +3,10 @@ from logging.handlers import RotatingFileHandler
 import os
 from subprocess import CalledProcessError
 from tempfile import NamedTemporaryFile
-from unittest import TestCase
 
 from mock import patch
 
+from common_test_base import CommonTestBase
 from utility import (
     ensure_dir,
     run_shell_command,
@@ -15,7 +15,10 @@ from utility import (
 )
 
 
-class TestUtility(TestCase):
+class TestUtility(CommonTestBase):
+
+    def setUp(self):
+        self.setup_test_logging()
 
     def test_ensure_dir(self):
         with temp_dir() as directory:

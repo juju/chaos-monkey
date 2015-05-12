@@ -24,6 +24,9 @@ __metaclass__ = type
 
 class TestRunner(CommonTestBase):
 
+    def setUp(self):
+        self.setup_test_logging()
+
     def test_factory(self):
         with temp_dir() as directory:
             expected_log_dir_path = os.path.join(directory, 'log')

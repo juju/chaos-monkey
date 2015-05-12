@@ -30,7 +30,6 @@ class Kill(ChaosMonkeyBase):
         return pids.split(' ')
 
     def kill_jujud(self, quiet_mode=True):
-        logging.info("Kill.kill_jujud")
         pids = self.get_pids('jujud')
         if not pids:
             logging.error("Jujud process ID not found")
@@ -40,7 +39,6 @@ class Kill(ChaosMonkeyBase):
         run_shell_command('kill -s SIGKILL ' + pids[0])
 
     def kill_mongodb(self, quiet_mode=True):
-        logging.info("Kill.kill_mongod")
         pids = self.get_pids('mongod')
         if not pids:
             logging.error("MongoDB process ID not found")

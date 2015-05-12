@@ -22,7 +22,7 @@ def ensure_dir(path):
             raise
 
 
-def run_shell_command(cmd, quiet_mode=True):
+def run_shell_command(cmd, quiet_mode=False):
     shell_cmd = cmd.split(' ') if type(cmd) is str else cmd
     output = None
     try:

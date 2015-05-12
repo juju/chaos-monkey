@@ -6,6 +6,9 @@ from tests.common_test_base import CommonTestBase
 
 class TestKill(CommonTestBase):
 
+    def setUp(self):
+        self.setup_test_logging()
+
     def test_get_pids(self):
         kill = Kill()
         with patch('utility.check_output', autospec=True,

@@ -15,6 +15,9 @@ __metaclass__ = type
 
 class TestChaosMonkey(CommonTestBase):
 
+    def setUp(self):
+        self.setup_test_logging()
+
     def test_factory(self):
         cm = ChaosMonkey.factory()
         self.assertIs(type(cm), ChaosMonkey)
@@ -45,9 +48,11 @@ class TestChaosMonkey(CommonTestBase):
         cm.include_group('all')
         with patch('utility.check_output', autospec=True) as mock:
             cm.run_chaos('net', 'deny-state-server', timeout=0)
-        self.assertEqual(mock.mock_calls,
-                         [call(['ufw', 'deny', '37017']),
-                          call(['ufw', 'delete', 'deny', '37017'])])
+        self.assertEqual(mock.mock_calls, [
+            call(['ufw', 'default', 'allow']),
+            call(['ufw', 'deny', '37017']), call(['ufw', 'enable']),
+            call(['ufw', 'delete', 'deny', '37017']),
+            call(['ufw', 'disable'])])
 
     def test_run_chaos_passes_timeout(self):
         cm = ChaosMonkey.factory()
@@ -78,12 +83,16 @@ class TestChaosMonkey(CommonTestBase):
     def test_run_command(self):
         cm = ChaosMonkey.factory()
         net = Net()
-        chaos = Chaos(enable=net.deny_ssh, disable=net.allow_ssh,
-                      group='net', command_str='deny-ssh', description='fake')
+        chaos = Chaos(enable=net.deny_state_server,
+                      disable=net.allow_state_server, group='net',
+                      command_str='allow_state_server', description='fake')
         with patch('utility.check_output', autospec=True) as mock:
             cm._run_command(chaos, timeout=0)
         self.assertEqual(mock.mock_calls, [
-            call(['ufw', 'deny', 'ssh']), call(['ufw', 'allow', 'ssh'])])
+            call(['ufw', 'default', 'allow']),
+            call(['ufw', 'deny', '37017']), call(['ufw', 'enable']),
+            call(['ufw', 'delete', 'deny', '37017']),
+            call(['ufw', 'disable'])])
 
     def test_shutdown(self):
         cm = ChaosMonkey.factory()
