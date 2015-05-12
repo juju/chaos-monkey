@@ -23,6 +23,7 @@ class Runner:
         self.dry_run = dry_run
         self.stop_chaos = False
         self.workspace_lock = False
+        self.lock_file = '{}/{}'.format(self.workspace, 'chaos_runner.lock')
         self.chaos_monkey = chaos_monkey
 
     @classmethod
@@ -38,7 +39,6 @@ class Runner:
         if not os.path.isdir(self.workspace):
             sys.stderr.write('Not a directory: {}\n'.format(self.workspace))
             sys.exit(-1)
-        self.lock_file = '{}/{}'.format(self.workspace, 'chaos_runner.lock')
         try:
             lock_fd = os.open(self.lock_file,
                               os.O_CREAT | os.O_EXCL | os.O_WRONLY)
@@ -56,14 +56,12 @@ class Runner:
     def verify_lock(self):
         if not self.workspace_lock:
             raise NotFound("Workspace is not locked.")
-        lock_file = open(self.lock_file, 'r')
-        pid = lock_file.read()
-        assert type(pid) is str
-        lock_file.close()
+        with open(self.lock_file, 'r') as lock_file:
+            pid = lock_file.read()
         expected_pid = str(os.getpid())
         if pid != expected_pid:
-            raise NotFound('Expected pid: {} in {}, found: {}'.format(
-                expected_pid, self.lock_file, pid))
+            raise NotFound('Unexpected pid: {} in {}, expected: {}'.format(
+                pid, self.lock_file, expected_pid))
 
     def random_chaos(self, run_timeout, enablement_timeout, include_group=None,
                      exclude_group=None, include_command=None,
@@ -89,10 +87,9 @@ class Runner:
                              exclude_command=exclude_command)
         expire_time = time() + run_timeout
         while time() < expire_time:
-            if self.stop_chaos:
+            if self.stop_chaos or self.dry_run:
                 break
-            if not self.dry_run:
-                self.chaos_monkey.run_random_chaos(enablement_timeout)
+            self.chaos_monkey.run_random_chaos(enablement_timeout)
         if not self.dry_run:
             self.chaos_monkey.shutdown()
 
@@ -102,8 +99,9 @@ class Runner:
                 os.unlink(self.lock_file)
             except OSError as e:
                 if e.errno != errno.ENOENT:
-                            raise
-                logging.debug('Lock file not found: {}'.format(self.lock_file))
+                    raise
+                logging.warning('Lock file not found: {}'.format(
+                    self.lock_file))
         logging.info('Chaos monkey stopped')
 
     def filter_commands(self, include_group, exclude_group=None,

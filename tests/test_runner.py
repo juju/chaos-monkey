@@ -24,6 +24,22 @@ __metaclass__ = type
 
 class TestRunner(CommonTestBase):
 
+    def test_factory(self):
+        with temp_dir() as directory:
+            expected_log_dir_path = os.path.join(directory, 'log')
+            with patch('runner.ensure_dir') as ed_mock:
+                with patch('runner.setup_logging')as sl_mock:
+                    with patch.object(ChaosMonkey, 'factory',
+                                      return_value=None) as cm_mock:
+                        runner = Runner.factory(directory)
+        call_params = ed_mock.call_args_list[0][0]
+        self.assertEqual(call_params[0],
+                         expected_log_dir_path)
+        expected_log_file = os.path.join(expected_log_dir_path, 'results.log')
+        sl_mock.assert_called_with(log_path=expected_log_file, log_count=1)
+        cm_mock.assert_called_with()
+        self.assertIsInstance(runner, Runner)
+
     def test_acquire_lock(self):
         with temp_dir() as directory:
             expected_file = os.path.join(directory, 'chaos_runner.lock')
@@ -31,8 +47,8 @@ class TestRunner(CommonTestBase):
             runner = Runner(directory, None)
             runner.acquire_lock()
             self.assertTrue(os.path.exists(expected_file))
-            lock_file = open(expected_file, 'r')
-            pid = lock_file.read()
+            with open(expected_file, 'r') as lock_file:
+                pid = lock_file.read()
             self.assertEqual(pid, expected_pid)
 
     def test_acquire_lock_fails_without_workspace(self):
@@ -63,7 +79,7 @@ class TestRunner(CommonTestBase):
 
     def test_verify_lock_workspace_lock_false(self):
             runner = Runner(None, None)
-            with self.assertRaises(NotFound):
+            with self.assertRaisesRegexp(NotFound, 'Workspace is not locked.'):
                 runner.verify_lock()
 
     def test_verify_lock_empty_lock_file(self):
@@ -73,7 +89,7 @@ class TestRunner(CommonTestBase):
             runner = Runner(directory, None)
             runner.workspace_lock = True
             runner.lock_file = expected_file
-            with self.assertRaises(NotFound):
+            with self.assertRaisesRegexp(NotFound, 'Unexpected pid:'):
                 runner.verify_lock()
 
     def test_verify_lock_bad_pid_in_lock_file(self):
@@ -84,7 +100,7 @@ class TestRunner(CommonTestBase):
             runner = Runner(directory, None)
             runner.workspace_lock = True
             runner.lock_file = expected_file
-            with self.assertRaises(NotFound):
+            with self.assertRaisesRegexp(NotFound, 'Unexpected pid:'):
                 runner.verify_lock()
 
     def test_random(self):
