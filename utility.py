@@ -34,7 +34,7 @@ def run_shell_command(cmd, quiet_mode=False):
     return output
 
 
-def setup_logging(log_path, log_count):
+def setup_logging(log_path, log_count, log_level=logging.INFO):
     """Install log handlers to output to file and stream."""
     formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s',
                                   '%Y-%m-%d %H:%M:%S')
@@ -46,7 +46,7 @@ def setup_logging(log_path, log_count):
     s_handler = logging.StreamHandler()
     s_handler.setFormatter(formatter)
     root_logger.addHandler(s_handler)
-    root_logger.setLevel(logging.DEBUG)
+    root_logger.setLevel(log_level)
 
 
 def split_arg_string(arg_string):
