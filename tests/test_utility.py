@@ -52,7 +52,7 @@ class TestUtility(CommonTestBase):
 
     def test_setup_logging(self):
         with NamedTemporaryFile() as temp_file:
-            setup_logging(temp_file.name, log_count=1)
+            setup_logging(temp_file.name, log_count=1, log_level=logging.DEBUG)
         logger = logging.getLogger()
         self.assertEqual(logger.level, logging.DEBUG)
         self.assertEqual(logger.name, 'root')
@@ -97,7 +97,7 @@ class TestUtility(CommonTestBase):
 
     def test_log_debug(self):
         with NamedTemporaryFile() as temp_file:
-            setup_logging(temp_file.name, log_count=1)
+            setup_logging(temp_file.name, log_count=1, log_level=logging.DEBUG)
             logging.debug("testing123")
             with open(temp_file.name, 'r') as file_reader:
                 content = file_reader.read()
