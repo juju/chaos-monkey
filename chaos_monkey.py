@@ -98,7 +98,7 @@ class ChaosMonkey:
                 group, command_str))
 
     def _run_command(self, chaos, timeout=2):
-        logging.info("%s" % chaos.description)
+        logging.info("{}".format(chaos.description))
         chaos.enable()
         sleep(timeout)
         if chaos.disable:
