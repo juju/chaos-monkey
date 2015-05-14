@@ -307,6 +307,19 @@ class TestRunner(CommonTestBase):
         self.assertEqual(runner.chaos_monkey.chaos[1].command_str,
                          'deny-incoming')
 
+    def test_filter_command_include_command_exclude_group(self):
+        include_command = 'deny-all,deny-incoming'
+        exclude_group = 'net'
+        with temp_dir() as directory:
+            runner = Runner(directory, ChaosMonkey.factory())
+            runner.filter_commands(include_group=None,
+                                   exclude_group=exclude_group,
+                                   include_command=include_command)
+        self.assertEqual(len(runner.chaos_monkey.chaos), 2)
+        self.assertEqual(runner.chaos_monkey.chaos[0].command_str, 'deny-all')
+        self.assertEqual(runner.chaos_monkey.chaos[1].command_str,
+                         'deny-incoming')
+
     def test_filter_command_exclude_command(self):
         exclude_command = 'jujud'
         with temp_dir() as directory:
