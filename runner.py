@@ -104,14 +104,13 @@ class Runner:
                     self.lock_file))
         logging.info('Chaos monkey stopped')
 
-    def filter_commands(self, include_group, exclude_group=None,
+    def filter_commands(self, include_group=None, exclude_group=None,
                         include_command=None, exclude_command=None):
-        # If any groups and any commands are not included, assume the intend
+        # If any groups and any commands are not included, assume the intent
         #  is to include all groups and all commands.
-        if ((not include_group and not include_command) or
-                (include_group == 'all')):
+        if not include_group and not include_command:
             self.chaos_monkey.include_group('all')
-        elif include_group:
+        if include_group:
             include_group = split_arg_string(include_group)
             self.chaos_monkey.include_group(include_group)
         if exclude_group:
