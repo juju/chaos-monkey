@@ -106,9 +106,12 @@ class Runner:
 
     def filter_commands(self, include_group, exclude_group=None,
                         include_command=None, exclude_command=None):
-        if not include_group or include_group == 'all':
+        # If any groups and any commands are not included, assume the intend
+        #  is to include all groups and all commands.
+        if ((not include_group and not include_command) or
+                (include_group == 'all')):
             self.chaos_monkey.include_group('all')
-        else:
+        elif include_group:
             include_group = split_arg_string(include_group)
             self.chaos_monkey.include_group(include_group)
         if exclude_group:

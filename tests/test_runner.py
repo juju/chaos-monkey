@@ -287,6 +287,36 @@ class TestRunner(CommonTestBase):
         self.assertTrue(all(c.group == 'net'
                         for c in runner.chaos_monkey.chaos))
 
+    def test_filter_command_include_command(self):
+        include_command = 'deny-all'
+        with temp_dir() as directory:
+            runner = Runner(directory, ChaosMonkey.factory())
+            runner.filter_commands(include_group=None,
+                                   include_command=include_command)
+        self.assertEqual(len(runner.chaos_monkey.chaos), 1)
+        self.assertEqual(runner.chaos_monkey.chaos[0].command_str, 'deny-all')
+
+    def test_filter_command_include_commands(self):
+        include_command = 'deny-all,deny-incoming'
+        with temp_dir() as directory:
+            runner = Runner(directory, ChaosMonkey.factory())
+            runner.filter_commands(include_group=None,
+                                   include_command=include_command)
+        self.assertEqual(len(runner.chaos_monkey.chaos), 2)
+        self.assertEqual(runner.chaos_monkey.chaos[0].command_str, 'deny-all')
+        self.assertEqual(runner.chaos_monkey.chaos[1].command_str,
+                         'deny-incoming')
+
+    def test_filter_command_exclude_command(self):
+        exclude_command = 'jujud'
+        with temp_dir() as directory:
+            runner = Runner(directory, ChaosMonkey.factory())
+            runner.filter_commands(include_group=None,
+                                   exclude_command=exclude_command)
+        self.assertGreaterEqual(len(runner.chaos_monkey.chaos), 1)
+        self.assertTrue(all(c.command_str != 'jujud'
+                            for c in runner.chaos_monkey.chaos))
+
     def test_filter_commands_include_group_and_include_command(self):
         include_group = 'net'
         include_command = 'jujud'
