@@ -13,7 +13,8 @@ class TestNet(CommonTestBase):
         self.setup_test_logging()
 
     def test_reset(self):
-        self._assert_mock_calls('shutdown', [call(['ufw', 'reset'])])
+        self._assert_mock_calls(
+            'shutdown', [call(['ufw', '--force', 'reset'])])
 
     def test_deny_all_incoming_and_outgoing_except_ssh(self):
         cmd = ['allow_ssh_str', 'default_deny_str', 'deny_out_to_any_str']
@@ -105,7 +106,8 @@ class TestNet(CommonTestBase):
         self.assertEqual(chaos.description, 'description')
 
     def test_shutdown(self):
-        self._assert_mock_calls('shutdown', [call(['ufw', 'reset'])])
+        self._assert_mock_calls(
+            'shutdown', [call(['ufw', '--force', 'reset'])])
 
     def _assert_mock_calls(self, method_call, call_list, **kwargs):
         net = Net()
@@ -121,7 +123,7 @@ class TestNet(CommonTestBase):
             cmd_calls = [call(getattr(net, attr).split(' ')) for attr in attrs]
         else:
             cmd_calls = [call(attrs.split(' '))]
-        enable_call = ([call(['ufw', 'enable'])]
+        enable_call = ([call(['ufw', '--force', 'enable'])]
                        if enable else [call(['ufw', 'disable'])])
         return default_allow_call + cmd_calls + enable_call
 

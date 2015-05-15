@@ -50,7 +50,7 @@ class TestChaosMonkey(CommonTestBase):
             cm.run_chaos('net', 'deny-state-server', timeout=0)
         self.assertEqual(mock.mock_calls, [
             call(['ufw', 'default', 'allow']),
-            call(['ufw', 'deny', '37017']), call(['ufw', 'enable']),
+            call(['ufw', 'deny', '37017']), call(['ufw', '--force', 'enable']),
             call(['ufw', 'delete', 'deny', '37017']),
             call(['ufw', 'disable'])])
 
@@ -90,7 +90,7 @@ class TestChaosMonkey(CommonTestBase):
             cm._run_command(chaos, timeout=0)
         self.assertEqual(mock.mock_calls, [
             call(['ufw', 'default', 'allow']),
-            call(['ufw', 'deny', '37017']), call(['ufw', 'enable']),
+            call(['ufw', 'deny', '37017']), call(['ufw', '--force', 'enable']),
             call(['ufw', 'delete', 'deny', '37017']),
             call(['ufw', 'disable'])])
 
@@ -98,7 +98,7 @@ class TestChaosMonkey(CommonTestBase):
         cm = ChaosMonkey.factory()
         with patch('utility.check_output', autospec=True) as mock:
             cm.shutdown()
-        mock.assert_any_call(['ufw', 'reset'])
+        mock.assert_any_call(['ufw', '--force', 'reset'])
 
     def test_include_group(self):
         group = ['net']
