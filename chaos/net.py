@@ -45,7 +45,7 @@ class Net(ChaosMonkeyBase):
         return 'ufw delete deny out to any'
 
     def reset(self):
-        cmd = 'ufw reset'
+        cmd = 'ufw --force reset'
         self.run_command(cmd)
 
     def deny_all_incoming_and_outgoing_except_ssh(self):
@@ -101,7 +101,7 @@ class Net(ChaosMonkeyBase):
         self.allow_port(6514)
 
     def enable_ufw(self):
-        cmd = 'ufw enable'
+        cmd = 'ufw --force enable'
         run_shell_command(cmd)
 
     def disable_ufw(self):

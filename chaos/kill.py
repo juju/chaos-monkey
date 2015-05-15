@@ -24,10 +24,10 @@ class Kill(ChaosMonkeyBase):
         return cls()
 
     def get_pids(self, process):
-        pids = run_shell_command('pidof ' + process)
+        pids = run_shell_command('pidof ' + process, quiet_mode=True)
         if not pids:
             return None
-        return pids.split(' ')
+        return pids.strip().split(' ')
 
     def kill_jujud(self, quiet_mode=True):
         pids = self.get_pids('jujud')
@@ -58,7 +58,7 @@ class Kill(ChaosMonkeyBase):
                 description='Jujud process has been killed.'))
         chaos.append(
             Chaos(
-                enable=self.kill_jujud,
+                enable=self.kill_mongodb,
                 disable=None,
                 group=self.group,
                 command_str='mongod',
