@@ -57,6 +57,14 @@ class ChaosMonkey:
             self.chaos.remove(group)
 
     @staticmethod
+    def get_all_groups():
+        return list(set(c.group for c in ChaosMonkey.get_all_chaos()[0]))
+
+    @staticmethod
+    def get_all_commands():
+        return [c.command_str for c in ChaosMonkey.get_all_chaos()[0]]
+
+    @staticmethod
     def get_groups(groups, chaos):
         ret_groups = []
         for group in groups:
