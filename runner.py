@@ -95,6 +95,8 @@ class Runner:
         if not self.dry_run:
             self.chaos_monkey.shutdown()
 
+        return None
+
     def cleanup(self):
         if self.lock_file:
             try:
