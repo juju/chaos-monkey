@@ -472,73 +472,73 @@ class TestRunner(CommonTestBase):
     def test_validate_group(self):
         groups = "net"
         all_groups = ChaosMonkey.get_all_groups()
-        groups, error = Runner._validate(groups, all_groups, 'group')
-        self.assertEqual(error, None)
+        groups = Runner._validate(groups, all_groups, 'group')
         self.assertItemsEqual(groups, ['net'])
 
     def test_validate_groups(self):
         groups = "net,kill"
         all_groups = ChaosMonkey.get_all_groups()
-        groups, error = Runner._validate(groups, all_groups, 'group')
-        self.assertEqual(error, None)
+        groups = Runner._validate(groups, all_groups, 'group')
         self.assertItemsEqual(groups, ['net', 'kill'])
 
     def test_validate_incorrect_group(self):
         groups = "net,killl"
         all_groups = ChaosMonkey.get_all_groups()
-        groups, error = Runner._validate(groups, all_groups, 'group')
-        self.assertEqual(error, "Incorrect group string: killl")
-        self.assertEqual(groups, None)
+        with self.assertRaisesRegexp(
+                BadRequest,  "Incorrect group string: killl"):
+            groups = Runner._validate(groups, all_groups, 'group')
 
     def test_validate_command(self):
         commands = "deny-all"
         all_commands = ChaosMonkey.get_all_commands()
-        commands, error = Runner._validate(commands, all_commands, 'command')
-        self.assertEqual(error, None)
+        commands = Runner._validate(commands, all_commands, 'command')
         self.assertItemsEqual(commands, ['deny-all'])
 
     def test_validate_commands(self):
         commands = "deny-all,jujud,deny-api-server"
         all_commands = ChaosMonkey.get_all_commands()
-        commands, error = Runner._validate(commands, all_commands, 'command')
-        self.assertEqual(error, None)
+        commands = Runner._validate(commands, all_commands, 'command')
         self.assertItemsEqual(
             commands, ['deny-all', 'jujud', 'deny-api-server'])
 
     def test_validate_incorrect_command(self):
         commands = "deny-all,monogd,deny-api-server"
         all_commands = ChaosMonkey.get_all_commands()
-        commands, error = Runner._validate(commands, all_commands, 'command')
-        self.assertEqual(error, "Incorrect command string: monogd")
-        self.assertEqual(commands, None)
+        with self.assertRaisesRegexp(
+                BadRequest, "Incorrect command string: monogd"):
+            Runner._validate(commands, all_commands, 'command')
 
     def test_filter_commands_include_incorrect_group(self):
         include_group = 'net,killl'
         with temp_dir() as directory:
             runner = Runner(directory, ChaosMonkey.factory())
-            error = runner.filter_commands(include_group=include_group)
-        self.assertEqual(error, "Incorrect group string: killl")
+            with self.assertRaisesRegexp(
+                    BadRequest, "Incorrect group string: killl"):
+                runner.filter_commands(include_group=include_group)
 
     def test_filter_commands_exclude_incorrect_group(self):
         exclude_group = 'net,killl'
         with temp_dir() as directory:
             runner = Runner(directory, ChaosMonkey.factory())
-            error = runner.filter_commands(exclude_group=exclude_group)
-        self.assertEqual(error, "Incorrect group string: killl")
+            with self.assertRaisesRegexp(
+                    BadRequest, "Incorrect group string: killl"):
+                runner.filter_commands(exclude_group=exclude_group)
 
     def test_filter_command_include_incorrect_command(self):
         include_command = 'deny-all,deny-net'
         with temp_dir() as directory:
             runner = Runner(directory, ChaosMonkey.factory())
-            error = runner.filter_commands(include_command=include_command)
-        self.assertEqual(error, "Incorrect command string: deny-net")
+            with self.assertRaisesRegexp(
+                    BadRequest, "Incorrect command string: deny-net"):
+                runner.filter_commands(include_command=include_command)
 
     def test_filter_command_exclude_incorrect_command(self):
         exclude_command = 'deny-all,deny-net,jujud'
         with temp_dir() as directory:
             runner = Runner(directory, ChaosMonkey.factory())
-            error = runner.filter_commands(exclude_command=exclude_command)
-        self.assertEqual(error, "Incorrect command string: deny-net")
+            with self.assertRaisesRegexp(
+                    BadRequest, "Incorrect command string: deny-net"):
+                runner.filter_commands(exclude_command=exclude_command)
 
 
 def add_fake_group(chaos_monkey):
