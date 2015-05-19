@@ -72,13 +72,6 @@ class Kill(ChaosMonkeyBase):
                 group=self.group,
                 command_str='mongod',
                 description='Mongod process has been killed.'))
-        chaos.append(
-            Chaos(
-                enable=self.restart_unit,
-                disable=None,
-                group=self.group,
-                command_str='restart-unit',
-                description='Unit restarted.'))
         return chaos
 
     def shutdown(self):

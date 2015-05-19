@@ -92,4 +92,4 @@ class TestKill(CommonTestBase):
 
 
 def get_all_kill_commands():
-    return ['jujud', 'mongod', 'restart-unit']
+    return ['jujud', 'mongod']
