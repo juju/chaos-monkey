@@ -26,7 +26,7 @@ class TestChaosMonkey(CommonTestBase):
         cm = ChaosMonkey.factory()
         all_chaos, all_factory_obj = cm.get_all_chaos()
         self.assertItemsEqual(
-            self._get_all_command_str(all_chaos),  self._command_strings())
+            self._get_command_str(all_chaos),  self._get_all_command_strings())
 
     def test_run_random_chaos(self):
         cm = ChaosMonkey.factory()
@@ -249,7 +249,7 @@ class TestChaosMonkey(CommonTestBase):
 
     def test_include_group_and_exclude_commands(self):
         groups = ['net']
-        commands = ['deny-all', 'deny-ssh']
+        commands = ['deny-all', 'deny-incoming']
         cm = ChaosMonkey.factory()
         cm.include_group(groups)
         self.assertGreaterEqual(len(cm.chaos), 1)
@@ -299,8 +299,19 @@ class TestChaosMonkey(CommonTestBase):
         self.assertTrue(any(c.group == 'net' for c in group))
         self.assertTrue(any(c.group == 'kill' for c in group))
 
-    def _get_all_command_str(self, chaos):
+    def test_get_all_commands(self):
+        all_commands = ChaosMonkey.get_all_commands()
+        self.assertItemsEqual(all_commands, self._get_all_command_strings())
+
+    def test_get_all_groups(self):
+        all_groups = ChaosMonkey.get_all_groups()
+        self.assertItemsEqual(all_groups, self._get_all_groups())
+
+    def _get_command_str(self, chaos):
         return [c.command_str for c in chaos]
 
-    def _command_strings(self):
+    def _get_all_command_strings(self):
         return get_all_net_commands() + get_all_kill_commands()
+
+    def _get_all_groups(self):
+        return ['net', 'kill']

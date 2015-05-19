@@ -81,10 +81,9 @@ class Runner:
         if enablement_timeout < 0:
             raise BadRequest("Invalid value for enablement timeout")
 
-        self.filter_commands(include_group=include_group,
-                             exclude_group=exclude_group,
-                             include_command=include_command,
-                             exclude_command=exclude_command)
+        self.filter_commands(
+            include_group=include_group, exclude_group=exclude_group,
+            include_command=include_command, exclude_command=exclude_command)
         expire_time = time() + run_timeout
         while time() < expire_time:
             if self.stop_chaos or self.dry_run:
@@ -106,22 +105,36 @@ class Runner:
 
     def filter_commands(self, include_group=None, exclude_group=None,
                         include_command=None, exclude_command=None):
+        all_groups = ChaosMonkey.get_all_groups()
+        all_commands = ChaosMonkey.get_all_commands()
+
         # If any groups and any commands are not included, assume the intent
         #  is to include all groups and all commands.
         if not include_group and not include_command:
             self.chaos_monkey.include_group('all')
         if include_group:
-            include_group = split_arg_string(include_group)
+            include_group = self._validate(include_group, all_groups)
             self.chaos_monkey.include_group(include_group)
         if exclude_group:
-            exclude_group = split_arg_string(exclude_group)
+            exclude_group = self._validate(exclude_group, all_groups)
             self.chaos_monkey.exclude_group(exclude_group)
         if include_command:
-            include_command = split_arg_string(include_command)
+            include_command = self._validate(
+                include_command, all_commands)
             self.chaos_monkey.include_command(include_command)
         if exclude_command:
-            exclude_command = split_arg_string(exclude_command)
+            exclude_command = self._validate(
+                exclude_command, all_commands)
             self.chaos_monkey.exclude_command(exclude_command)
+
+    @staticmethod
+    def _validate(sub_string, all_list):
+        sub_list = split_arg_string(sub_string)
+        for item in sub_list:
+            if item not in all_list:
+                raise BadRequest(
+                    'Invalid value given on command line: {}'.format(item))
+        return sub_list
 
     def sig_handler(self, sig_num, frame):
         """Set the stop_chaos flag, to request a safe exit."""
@@ -144,7 +157,7 @@ if __name__ == '__main__':
         'path',
         help='An existing directory, to be used as a workspace.')
     parser.add_argument(
-        '-pt', '--enablement-timeout', default=10, type=int,
+        '-et', '--enablement-timeout', default=10, type=int,
         help="Enablement timeout in seconds")
     parser.add_argument(
         '-tt', '--total-timeout', default=60, type=int,
@@ -174,10 +187,16 @@ if __name__ == '__main__':
     runner.acquire_lock()
     logging.info('Chaos monkey started in {}'.format(args.path))
     logging.debug('Dry run is set to {}'.format(args.dry_run))
-    runner.random_chaos(run_timeout=args.total_timeout,
-                        enablement_timeout=args.enablement_timeout,
-                        include_group=args.include_group,
-                        exclude_group=args.exclude_group,
-                        include_command=args.include_command,
-                        exclude_command=args.exclude_command)
-    runner.cleanup()
+    try:
+        runner.random_chaos(
+            run_timeout=args.total_timeout,
+            enablement_timeout=args.enablement_timeout,
+            include_group=args.include_group,
+            exclude_group=args.exclude_group,
+            include_command=args.include_command,
+            exclude_command=args.exclude_command)
+    except Exception as e:
+        logging.error('{} ({})'.format(e, type(e).__name__))
+        sys.exit(1)
+    finally:
+        runner.cleanup()

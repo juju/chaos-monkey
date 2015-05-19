@@ -50,6 +50,8 @@ def setup_logging(log_path, log_count, log_level=logging.INFO):
 
 
 def split_arg_string(arg_string):
+    if not arg_string:
+        return []
     return arg_string.split(',') if ',' in arg_string else [arg_string]
 
 
