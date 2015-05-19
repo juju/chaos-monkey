@@ -113,27 +113,27 @@ class Runner:
         if not include_group and not include_command:
             self.chaos_monkey.include_group('all')
         if include_group:
-            include_group = self._validate(include_group, all_groups, 'group')
+            include_group = self._validate(include_group, all_groups)
             self.chaos_monkey.include_group(include_group)
         if exclude_group:
-            exclude_group = self._validate(exclude_group, all_groups, 'group')
+            exclude_group = self._validate(exclude_group, all_groups)
             self.chaos_monkey.exclude_group(exclude_group)
         if include_command:
             include_command = self._validate(
-                include_command, all_commands, 'command')
+                include_command, all_commands)
             self.chaos_monkey.include_command(include_command)
         if exclude_command:
             exclude_command = self._validate(
-                exclude_command, all_commands, 'command')
+                exclude_command, all_commands)
             self.chaos_monkey.exclude_command(exclude_command)
 
     @staticmethod
-    def _validate(sub_string, all_list, item_type):
+    def _validate(sub_string, all_list):
         sub_list = split_arg_string(sub_string)
         for item in sub_list:
             if item not in all_list:
                 raise BadRequest(
-                    "Incorrect {} string: {}".format(item_type, item))
+                    'Invalid value given on command line: {}'.format(item))
         return sub_list
 
     def sig_handler(self, sig_num, frame):

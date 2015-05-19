@@ -472,32 +472,32 @@ class TestRunner(CommonTestBase):
     def test_validate_group(self):
         groups = "net"
         all_groups = ChaosMonkey.get_all_groups()
-        groups = Runner._validate(groups, all_groups, 'group')
+        groups = Runner._validate(groups, all_groups)
         self.assertItemsEqual(groups, ['net'])
 
     def test_validate_groups(self):
         groups = "net,kill"
         all_groups = ChaosMonkey.get_all_groups()
-        groups = Runner._validate(groups, all_groups, 'group')
+        groups = Runner._validate(groups, all_groups)
         self.assertItemsEqual(groups, ['net', 'kill'])
 
     def test_validate_incorrect_group(self):
         groups = "net,killl"
         all_groups = ChaosMonkey.get_all_groups()
         with self.assertRaisesRegexp(
-                BadRequest,  "Incorrect group string: killl"):
-            groups = Runner._validate(groups, all_groups, 'group')
+                BadRequest,  "Invalid value given on command line: killl"):
+            Runner._validate(groups, all_groups)
 
     def test_validate_command(self):
         commands = "deny-all"
         all_commands = ChaosMonkey.get_all_commands()
-        commands = Runner._validate(commands, all_commands, 'command')
+        commands = Runner._validate(commands, all_commands)
         self.assertItemsEqual(commands, ['deny-all'])
 
     def test_validate_commands(self):
         commands = "deny-all,jujud,deny-api-server"
         all_commands = ChaosMonkey.get_all_commands()
-        commands = Runner._validate(commands, all_commands, 'command')
+        commands = Runner._validate(commands, all_commands)
         self.assertItemsEqual(
             commands, ['deny-all', 'jujud', 'deny-api-server'])
 
@@ -505,15 +505,15 @@ class TestRunner(CommonTestBase):
         commands = "deny-all,monogd,deny-api-server"
         all_commands = ChaosMonkey.get_all_commands()
         with self.assertRaisesRegexp(
-                BadRequest, "Incorrect command string: monogd"):
-            Runner._validate(commands, all_commands, 'command')
+                BadRequest, "Invalid value given on command line: monogd"):
+            Runner._validate(commands, all_commands)
 
     def test_filter_commands_include_incorrect_group(self):
         include_group = 'net,killl'
         with temp_dir() as directory:
             runner = Runner(directory, ChaosMonkey.factory())
             with self.assertRaisesRegexp(
-                    BadRequest, "Incorrect group string: killl"):
+                    BadRequest, "Invalid value given on command line: killl"):
                 runner.filter_commands(include_group=include_group)
 
     def test_filter_commands_exclude_incorrect_group(self):
@@ -521,7 +521,7 @@ class TestRunner(CommonTestBase):
         with temp_dir() as directory:
             runner = Runner(directory, ChaosMonkey.factory())
             with self.assertRaisesRegexp(
-                    BadRequest, "Incorrect group string: killl"):
+                    BadRequest, "Invalid value given on command line: killl"):
                 runner.filter_commands(exclude_group=exclude_group)
 
     def test_filter_command_include_incorrect_command(self):
@@ -529,7 +529,8 @@ class TestRunner(CommonTestBase):
         with temp_dir() as directory:
             runner = Runner(directory, ChaosMonkey.factory())
             with self.assertRaisesRegexp(
-                    BadRequest, "Incorrect command string: deny-net"):
+                    BadRequest,
+                    "Invalid value given on command line: deny-net"):
                 runner.filter_commands(include_command=include_command)
 
     def test_filter_command_exclude_incorrect_command(self):
@@ -537,7 +538,8 @@ class TestRunner(CommonTestBase):
         with temp_dir() as directory:
             runner = Runner(directory, ChaosMonkey.factory())
             with self.assertRaisesRegexp(
-                    BadRequest, "Incorrect command string: deny-net"):
+                    BadRequest,
+                    "Invalid value given on command line: deny-net"):
                 runner.filter_commands(exclude_command=exclude_command)
 
 
