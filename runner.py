@@ -65,7 +65,7 @@ class Runner:
 
     def random_chaos(self, run_timeout, enablement_timeout, include_group=None,
                      exclude_group=None, include_command=None,
-                     exclude_command=None):
+                     exclude_command=None, run_once=False):
         """Runs a random chaos monkey
 
         :param run_timeout: Total time to run the chaos
@@ -89,6 +89,8 @@ class Runner:
             if self.stop_chaos or self.dry_run:
                 break
             self.chaos_monkey.run_random_chaos(enablement_timeout)
+            if run_once:
+                break
         if not self.dry_run:
             self.chaos_monkey.shutdown()
 
@@ -151,11 +153,10 @@ def setup_sig_handlers(handler):
     signal.signal(signal.SIGINT, handler)
 
 
-if __name__ == '__main__':
+def parse_args(argv=None):
     parser = ArgumentParser()
     parser.add_argument(
-        'path',
-        help='An existing directory, to be used as a workspace.')
+        'path', help='An existing directory, to be used as a workspace.')
     parser.add_argument(
         '-et', '--enablement-timeout', default=10, type=int,
         help="Enablement timeout in seconds")
@@ -167,20 +168,27 @@ if __name__ == '__main__':
         help='The number of backups to keep.')
     parser.add_argument(
         '-ig', '--include-group',
-        help='Include these groups only in the test')
+        help='Include these groups only in the test', default=None)
     parser.add_argument(
         '-eg', '--exclude-group',
-        help='Exclude groups from the test')
+        help='Exclude groups from the test', default=None)
     parser.add_argument(
         '-ic', '--include-command',
-        help='Include commands in test.')
+        help='Include commands in test.', default=None)
     parser.add_argument(
         '-ec', '--exclude-command',
-        help='Exclude commands in the test')
+        help='Exclude commands in the test', default=None)
     parser.add_argument(
         '-dr', '--dry-run', dest='dry_run', action='store_true',
-        help='Do not actually run chaos operations.')
-    args = parser.parse_args()
+        help='Do not actually run chaos operations.', default=False)
+    parser.add_argument(
+        '-ro', '--run-once', action='store_true',
+        help='Run a single command only.', default=False)
+    return parser.parse_args(argv)
+
+
+if __name__ == '__main__':
+    args = parse_args()
     runner = Runner.factory(workspace=args.path, log_count=args.log_count,
                             dry_run=args.dry_run)
     setup_sig_handlers(runner.sig_handler)
@@ -194,7 +202,8 @@ if __name__ == '__main__':
             include_group=args.include_group,
             exclude_group=args.exclude_group,
             include_command=args.include_command,
-            exclude_command=args.exclude_command)
+            exclude_command=args.exclude_command,
+            run_once=args.run_once)
     except Exception as e:
         logging.error('{} ({})'.format(e, type(e).__name__))
         sys.exit(1)

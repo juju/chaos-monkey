@@ -1,3 +1,4 @@
+from argparse import Namespace
 import os
 import signal
 import subprocess
@@ -8,6 +9,7 @@ from mock import patch
 from chaos_monkey import ChaosMonkey
 from chaos_monkey_base import Chaos
 from runner import (
+    parse_args,
     Runner,
     setup_sig_handlers,
 )
@@ -541,6 +543,46 @@ class TestRunner(CommonTestBase):
                     BadRequest,
                     "Invalid value given on command line: deny-net"):
                 runner.filter_commands(exclude_command=exclude_command)
+
+    def test_parse_args(self):
+        args = parse_args(['path'])
+        self.assertEqual(
+            args, Namespace(path='path', enablement_timeout=10,
+                            total_timeout=60, log_count=2, include_group=None,
+                            exclude_group=None, include_command=None,
+                            exclude_command=None, dry_run=False,
+                            run_once=False))
+
+    def test_parse_args_non_default_values(self):
+        args = parse_args(['path',
+                           '--enablement-timeout', '30',
+                           '--total-timeout', '600',
+                           '--log-count', '4',
+                           '--include-group', 'net',
+                           '--exclude-group', 'kill',
+                           '--include-command', 'deny-all',
+                           '--exclude-command', 'deny-incoming',
+                           '--dry-run', '--run-once'])
+        self.assertEqual(
+            args, Namespace(path='path', enablement_timeout=30,
+                            total_timeout=600, log_count=4,
+                            include_group='net', exclude_group='kill',
+                            include_command='deny-all',
+                            exclude_command='deny-incoming', dry_run=True,
+                            run_once=True))
+
+    def test_random_chaos_run_once(self):
+        cm = ChaosMonkey.factory()
+        with patch('chaos_monkey.ChaosMonkey.run_random_chaos',
+                   autospec=True) as mock:
+            with patch('chaos_monkey.ChaosMonkey.shutdown',
+                       autospec=True) as s_mock:
+                with temp_dir() as directory:
+                    runner = Runner(directory, cm)
+                    runner.random_chaos(
+                        run_timeout=2, enablement_timeout=1, run_once=True)
+        mock.assert_called_once_with(cm, 1)
+        s_mock.assert_called_once_with(cm)
 
 
 def add_fake_group(chaos_monkey):

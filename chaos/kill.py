@@ -47,6 +47,9 @@ class Kill(ChaosMonkeyBase):
             return
         run_shell_command('kill -s SIGKILL ' + pids[0])
 
+    def restart_node(self, quiet_mode=True):
+        run_shell_command('shutdown -r now')
+
     def get_chaos(self):
         chaos = list()
         chaos.append(
