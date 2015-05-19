@@ -87,9 +87,9 @@ class TestKill(CommonTestBase):
     def test_restart_node(self):
         kill = Kill()
         with patch('utility.check_output') as mock:
-            kill.restart_node()
+            kill.restart_unit()
         mock.assert_called_once_with(['shutdown', '-r', 'now'])
 
 
 def get_all_kill_commands():
-    return ['jujud', 'mongod']
+    return ['jujud', 'mongod', 'restart-unit']
