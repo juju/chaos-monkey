@@ -1,4 +1,5 @@
 import logging
+from subprocess import CalledProcessError
 
 from chaos_monkey_base import (
     Chaos,
@@ -13,7 +14,7 @@ __metaclass__ = type
 
 
 class Kill(ChaosMonkeyBase):
-    """Kills a process"""
+    """Kills a process or shutdown a unit"""
 
     def __init__(self):
         self.group = 'kill'
@@ -46,6 +47,14 @@ class Kill(ChaosMonkeyBase):
                 raise NotFound('Process id not found')
             return
         run_shell_command('kill -s SIGKILL ' + pids[0])
+
+    def restart_unit(self, quiet_mode=False):
+        try:
+            run_shell_command('shutdown -r now')
+        except CalledProcessError:
+            logging.error("Error while executing command: shutdown -r now ")
+            if not quiet_mode:
+                raise
 
     def get_chaos(self):
         chaos = list()

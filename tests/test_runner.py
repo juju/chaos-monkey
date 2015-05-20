@@ -1,6 +1,9 @@
+from argparse import Namespace
+from contextlib import contextmanager
 import os
 import signal
 import subprocess
+from StringIO import StringIO
 from time import time
 
 from mock import patch
@@ -8,6 +11,7 @@ from mock import patch
 from chaos_monkey import ChaosMonkey
 from chaos_monkey_base import Chaos
 from runner import (
+    parse_args,
     Runner,
     setup_sig_handlers,
 )
@@ -119,39 +123,6 @@ class TestRunner(CommonTestBase):
                 runner = Runner(directory, ChaosMonkey.factory())
                 runner.random_chaos(run_timeout=1, enablement_timeout=0)
         self.assertEqual(mock.called, True)
-
-    def test_random_raises_exception(self):
-        with patch('utility.check_output', autospec=True):
-            with self.assertRaisesRegexp(
-                    BadRequest,
-                    "Total run timeout can't be less than enablement timeout"):
-                with temp_dir() as directory:
-                    runner = Runner(directory, ChaosMonkey.factory())
-                    runner.random_chaos(run_timeout=1, enablement_timeout=2)
-
-    def test_random_run_timeout_raises_exception_for_zero(self):
-        with patch('utility.check_output', autospec=True):
-            with self.assertRaisesRegexp(
-                    BadRequest, "Invalid value for run timeout"):
-                with temp_dir() as directory:
-                    runner = Runner(directory, ChaosMonkey.factory())
-                    runner.random_chaos(run_timeout=0, enablement_timeout=-1)
-
-    def test_random_run_timeout_raises_exception_for_less_than_zero(self):
-        with patch('utility.check_output', autospec=True):
-            with self.assertRaisesRegexp(
-                    BadRequest, "Invalid value for run timeout"):
-                with temp_dir() as directory:
-                    runner = Runner(directory, ChaosMonkey.factory())
-                    runner.random_chaos(run_timeout=-1, enablement_timeout=-2)
-
-    def test_random_run_enablement_raises_exception_for_less_than_zero(self):
-        with patch('utility.check_output', autospec=True):
-            with self.assertRaisesRegexp(
-                    BadRequest, "Invalid value for enablement timeout"):
-                with temp_dir() as directory:
-                    runner = Runner(directory, ChaosMonkey.factory())
-                    runner.random_chaos(run_timeout=2, enablement_timeout=-1)
 
     def test_random_verify_timeout(self):
         run_timeout = 6
@@ -542,7 +513,97 @@ class TestRunner(CommonTestBase):
                     "Invalid value given on command line: deny-net"):
                 runner.filter_commands(exclude_command=exclude_command)
 
+    def test_parse_args(self):
+        args = parse_args(['path'])
+        self.assertEqual(
+            args, Namespace(path='path', enablement_timeout=10,
+                            total_timeout=10, log_count=2, include_group=None,
+                            exclude_group=None, include_command=None,
+                            exclude_command=None, dry_run=False,
+                            run_once=False))
+
+    def test_parse_args_non_default_values(self):
+        args = parse_args(['path',
+                           '--enablement-timeout', '30',
+                           '--total-timeout', '600',
+                           '--log-count', '4',
+                           '--include-group', 'net',
+                           '--exclude-group', 'kill',
+                           '--include-command', 'deny-all',
+                           '--exclude-command', 'deny-incoming',
+                           '--dry-run'])
+        self.assertEqual(
+            args, Namespace(path='path', enablement_timeout=30,
+                            total_timeout=600, log_count=4,
+                            include_group='net', exclude_group='kill',
+                            include_command='deny-all',
+                            exclude_command='deny-incoming', dry_run=True,
+                            run_once=False))
+
+    def test_parse_args_non_default_values_set_run_once(self):
+        args = parse_args(['path',
+                           '--enablement-timeout', '30',
+                           '--log-count', '4',
+                           '--include-group', 'net',
+                           '--exclude-group', 'kill',
+                           '--include-command', 'deny-all',
+                           '--exclude-command', 'deny-incoming',
+                           '--dry-run',
+                           '--run-once'])
+        self.assertEqual(
+            args, Namespace(path='path', enablement_timeout=30,
+                            total_timeout=30, log_count=4,
+                            include_group='net', exclude_group='kill',
+                            include_command='deny-all',
+                            exclude_command='deny-incoming', dry_run=True,
+                            run_once=True))
+
+    def test_parse_args_error_enablement_greater_than_total_timeout(self):
+        with parse_error(self) as stderr:
+            parse_args(['path', '--total-timeout', '1',
+                        '--enablement-timeout', '5'])
+        self.assertIn('total-timeout can not be less than enablement-timeout',
+                      stderr.getvalue())
+
+    def test_parse_args_error_total_timeout_less_than_zero(self):
+        with parse_error(self) as stderr:
+            parse_args(['path', '--total-timeout', '-1',
+                        '--enablement-timeout', '-2'])
+        self.assertIn('Invalid total-timeout value:', stderr.getvalue())
+
+    def test_parse_args_error_enablement_timeout_less_than_zero(self):
+        with parse_error(self) as stderr:
+            parse_args(['path', '--total-timeout', '5',
+                        '--enablement-timeout', '-1'])
+        self.assertIn('Invalid enablement-timeout value:', stderr.getvalue())
+
+    def test_parse_args_error_total_timeout_and_run_once_set(self):
+        with parse_error(self) as stderr:
+            parse_args(['path', '--total-timeout', '20', '--run-once'])
+        self.assertIn('Conflicting request:', stderr.getvalue())
+
+    def test_random_chaos_run_once(self):
+        cm = ChaosMonkey.factory()
+        with patch('chaos_monkey.ChaosMonkey.run_random_chaos',
+                   autospec=True) as mock:
+            with patch('chaos_monkey.ChaosMonkey.shutdown',
+                       autospec=True) as s_mock:
+                with temp_dir() as directory:
+                    runner = Runner(directory, cm)
+                    runner.random_chaos(
+                        run_timeout=2, enablement_timeout=1, run_once=True)
+        mock.assert_called_once_with(cm, 1)
+        s_mock.assert_called_once_with(cm)
+
 
 def add_fake_group(chaos_monkey):
     chaos = Chaos(None, None, 'fake_group', 'fake_command_str', 'description')
     chaos_monkey.append(chaos)
+
+
+@contextmanager
+def parse_error(test_case):
+    stderr = StringIO()
+    with test_case.assertRaises(SystemExit):
+        with patch('sys.stderr', stderr):
+            yield stderr
