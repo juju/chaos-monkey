@@ -176,20 +176,21 @@ def parse_args(argv=None):
         '-ro', '--run-once', action='store_true',
         help='Run a single command only.', default=False)
     args = parser.parse_args(argv)
-    if not args.run_once and not args.total_timeout:
-        args.total_timeout = args.enablement_timeout
 
-    if not args.run_once and (args.enablement_timeout > args.total_timeout):
-        parser.error("total-timeout can not be less than enablement-timeout.")
-    if not args.run_once and args.total_timeout <= 0:
-        parser.error("Invalid total-timeout value: timeout must be greater "
-                     "than zero")
-    if args.enablement_timeout < 0:
-        parser.error("Invalid enablement-timeout value: "
-                     "timeout should be greater than zero")
     if args.run_once and args.total_timeout:
         parser.error("Conflicting request: total-timeout is irrelevant "
                      "if run-once is set.")
+    if not args.total_timeout:
+        args.total_timeout = args.enablement_timeout
+    if args.enablement_timeout > args.total_timeout:
+        parser.error("total-timeout can not be less than "
+                     "enablement-timeout.")
+    if args.total_timeout <= 0:
+        parser.error("Invalid total-timeout value: timeout must be "
+                     "greater than zero.")
+    if args.enablement_timeout < 0:
+        parser.error("Invalid enablement-timeout value: timeout must be "
+                     "zero or greater.")
     return args
 
 if __name__ == '__main__':

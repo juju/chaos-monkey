@@ -548,10 +548,11 @@ class TestRunner(CommonTestBase):
                            '--exclude-group', 'kill',
                            '--include-command', 'deny-all',
                            '--exclude-command', 'deny-incoming',
-                           '--dry-run', '--run-once'])
+                           '--dry-run',
+                           '--run-once'])
         self.assertEqual(
             args, Namespace(path='path', enablement_timeout=30,
-                            total_timeout=None, log_count=4,
+                            total_timeout=30, log_count=4,
                             include_group='net', exclude_group='kill',
                             include_command='deny-all',
                             exclude_command='deny-incoming', dry_run=True,
