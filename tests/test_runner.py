@@ -517,7 +517,7 @@ class TestRunner(CommonTestBase):
         args = parse_args(['path'])
         self.assertEqual(
             args, Namespace(path='path', enablement_timeout=10,
-                            total_timeout=60, log_count=2, include_group=None,
+                            total_timeout=10, log_count=2, include_group=None,
                             exclude_group=None, include_command=None,
                             exclude_command=None, dry_run=False,
                             run_once=False))
