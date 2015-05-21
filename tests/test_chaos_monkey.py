@@ -4,7 +4,6 @@ from chaos_monkey import (
     ChaosMonkey,
     NotFound
 )
-from chaos_monkey_base import Chaos
 from chaos.net import Net
 from tests.common_test_base import CommonTestBase
 from tests.test_kill import get_all_kill_commands
@@ -49,10 +48,13 @@ class TestChaosMonkey(CommonTestBase):
         with patch('utility.check_output', autospec=True) as mock:
             cm.run_chaos('net', 'deny-state-server', timeout=0)
         self.assertEqual(mock.mock_calls, [
+            call(['ufw', 'deny', '37017']),
             call(['ufw', 'default', 'allow']),
-            call(['ufw', 'deny', '37017']), call(['ufw', '--force', 'enable']),
+            call(['ufw', '--force', 'enable']),
+            call(['ufw', 'disable']),
+            call(['ufw', 'default', 'deny']),
             call(['ufw', 'delete', 'deny', '37017']),
-            call(['ufw', 'disable'])])
+        ])
 
     def test_run_chaos_passes_timeout(self):
         cm = ChaosMonkey.factory()
@@ -83,16 +85,21 @@ class TestChaosMonkey(CommonTestBase):
     def test_run_command(self):
         cm = ChaosMonkey.factory()
         net = Net()
-        chaos = Chaos(enable=net.deny_state_server,
-                      disable=net.allow_state_server, group='net',
-                      command_str='allow_state_server', description='fake')
+        for chaos in net.get_chaos():
+            if chaos.command_str == "deny-state-server":
+                break
+        else:
+            self.fail("'deny-state-server' chaos not found")
         with patch('utility.check_output', autospec=True) as mock:
             cm._run_command(chaos, timeout=0)
         self.assertEqual(mock.mock_calls, [
+            call(['ufw', 'deny', '37017']),
             call(['ufw', 'default', 'allow']),
-            call(['ufw', 'deny', '37017']), call(['ufw', '--force', 'enable']),
+            call(['ufw', '--force', 'enable']),
+            call(['ufw', 'disable']),
+            call(['ufw', 'default', 'deny']),
             call(['ufw', 'delete', 'deny', '37017']),
-            call(['ufw', 'disable'])])
+        ])
 
     def test_shutdown(self):
         cm = ChaosMonkey.factory()

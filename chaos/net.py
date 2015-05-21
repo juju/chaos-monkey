@@ -9,155 +9,119 @@ from utility import (
 __metaclass__ = type
 
 
+class FirewallAction:
+    """FirewallAction encapsulates a ufw command and a means of undoing it."""
+
+    def __init__(self, do_command, undo_command):
+        self.do_command = do_command
+        self.undo_command = undo_command
+
+    def __repr__(self):
+        return "{}({!r}, {!r})".format(
+            self.__class__.__name__, self.do_command, self.undo_command)
+
+    @classmethod
+    def enable(cls):
+        """Gives an action for enabling and disabling the firewalling."""
+        return cls("ufw --force enable", "ufw disable")
+
+    @classmethod
+    def default_allow(cls):
+        """Gives an action for allowing and denying incoming connections."""
+        return cls("ufw default allow", "ufw default deny")
+
+    @classmethod
+    def rule(cls, rule):
+        """Gives an action for creating and deleting a given firewall rule."""
+        return cls("ufw {}".format(rule), "ufw delete {}".format(rule))
+
+    @classmethod
+    def deny_port_rule(cls, port):
+        """Gives an action for allowing and denying a particular port."""
+        return cls.rule("deny {:d}".format(port))
+
+    def do(self):
+        """Runs command changing the firewall behaviour."""
+        run_shell_command(self.do_command)
+
+    def undo(self):
+        """Runs command reverting the firewall behaviour that was changed."""
+        run_shell_command(self.undo_command)
+
+
+class FirewallChaos(Chaos):
+    """FirewallChaos contains a particular firewall chaos operation to run."""
+
+    group = "net"
+
+    def __init__(self, name, description, *actions):
+        self.command_str = name
+        self.description = description
+        self._actions = list(actions)
+        self._actions.append(FirewallAction.enable())
+
+    def enable(self):
+        for actions in self._actions:
+            actions.do()
+
+    def disable(self):
+        for actions in reversed(self._actions):
+            actions.undo()
+
+
 class Net(ChaosMonkeyBase):
-    """Creates networking chaos."""
+    """Net generates chaos actions that affect networking on a machine."""
 
     def __init__(self):
-        self.group = 'net'
         super(Net, self).__init__()
 
     @classmethod
     def factory(cls):
         return cls()
 
-    @property
-    def default_deny_str(self):
-        return "ufw default deny"
-
-    @property
-    def default_allow_str(self):
-        return "ufw default allow"
-
-    @property
-    def allow_ssh_str(self):
-        return 'ufw allow ssh'
-
-    @property
-    def delete_ssh_str(self):
-        return 'ufw delete allow ssh'
-
-    @property
-    def deny_out_to_any_str(self):
-        return 'ufw deny out to any'
-
-    @property
-    def delete_deny_out_to_any_str(self):
-        return 'ufw delete deny out to any'
-
-    def reset(self):
-        cmd = 'ufw --force reset'
-        self.run_command(cmd)
-
-    def deny_all_incoming_and_outgoing_except_ssh(self):
-        cmd = [self.allow_ssh_str, self.default_deny_str,
-               self.deny_out_to_any_str]
-        self.start_firewall(cmd)
-
-    def allow_all_incoming_and_outgoing(self):
-        cmd = [self.delete_ssh_str, self.default_allow_str,
-               self.delete_deny_out_to_any_str]
-        self.stop_firewall(cmd)
-
-    def deny_all_incoming_except_ssh(self):
-        cmd = [self.allow_ssh_str, self.default_deny_str]
-        self.start_firewall(cmd)
-
-    def allow_all_incoming(self):
-        cmd = [self.delete_ssh_str, self.default_allow_str]
-        self.stop_firewall(cmd)
-
-    def deny_all_outgoing_except_ssh(self):
-        cmd = [self.allow_ssh_str, self.deny_out_to_any_str]
-        self.start_firewall(cmd)
-
-    def allow_all_outgoing(self):
-        cmd = [self.delete_ssh_str, self.delete_deny_out_to_any_str]
-        self.stop_firewall(cmd)
-
-    def deny_port(self, port):
-        cmd = 'ufw deny %s' % port
-        self.start_firewall(cmd)
-
-    def allow_port(self, port):
-        cmd = 'ufw delete deny %s' % port
-        self.stop_firewall(cmd)
-
-    def deny_state_server(self):
-        self.deny_port(37017)
-
-    def allow_state_server(self):
-        self.allow_port(37017)
-
-    def deny_api_server(self):
-        self.deny_port(17070)
-
-    def allow_api_server(self):
-        self.allow_port(17070)
-
-    def deny_sys_log(self):
-        self.deny_port(6514)
-
-    def allow_sys_log(self):
-        self.allow_port(6514)
-
-    def enable_ufw(self):
-        cmd = 'ufw --force enable'
-        run_shell_command(cmd)
-
-    def disable_ufw(self):
-        cmd = 'ufw disable'
-        run_shell_command(cmd)
-
-    def start_firewall(self, commands):
-        self.run_command(self.default_allow_str)
-        self.run_command(commands)
-        self.enable_ufw()
-
-    def stop_firewall(self, command):
-        self.run_command(command)
-        self.disable_ufw()
-
-    def run_command(self, command):
-        commands = [command] if type(command) is str else command
-        for cmd in commands:
-            run_shell_command(cmd)
-
     def get_chaos(self):
-        chaos = list()
-        chaos.append(
-            self.create_chaos(
-                self.deny_all_incoming_and_outgoing_except_ssh,
-                self.allow_all_incoming_and_outgoing, 'deny-all',
-                'Deny all incoming and outgoing network traffic except ssh.'))
-        chaos.append(
-            self.create_chaos(
-                self.deny_all_incoming_except_ssh, self.allow_all_incoming,
+        allow_incoming = FirewallAction.default_allow()
+        allow_ssh = FirewallAction.rule("allow ssh")
+        deny_out_to_any = FirewallAction.rule("deny out to any")
+        return [
+            FirewallChaos(
+                'deny-all',
+                'Deny all incoming and outgoing network traffic except ssh.',
+                allow_ssh,
+                deny_out_to_any,
+                ),
+            FirewallChaos(
                 'deny-incoming',
-                'Deny all incoming network traffic except ssh.'))
-        chaos.append(
-            self.create_chaos(
-                self.deny_all_outgoing_except_ssh, self.allow_all_outgoing,
+                'Deny all incoming network traffic except ssh.',
+                allow_ssh,
+                ),
+            FirewallChaos(
                 'deny-outgoing',
-                'Deny all outgoing network traffic except ssh.'))
-        chaos.append(
-            self.create_chaos(
-                self.deny_state_server, self.allow_state_server,
+                'Deny all outgoing network traffic except ssh.',
+                allow_ssh,
+                deny_out_to_any,
+                allow_incoming,
+                ),
+            FirewallChaos(
                 'deny-state-server',
-                'Deny network traffic to the Juju State-Server'))
-        chaos.append(
-            self.create_chaos(
-                self.deny_api_server, self.allow_api_server,
+                'Deny network traffic to the Juju State-Server',
+                FirewallAction.deny_port_rule(37017),
+                allow_incoming,
+                ),
+            FirewallChaos(
                 'deny-api-server',
-                'Deny network traffic to the Juju API Server.'))
-        chaos.append(
-            self.create_chaos(
-                self.deny_sys_log, self.allow_sys_log, 'deny-sys-log',
-                'Deny network traffic to the Juju SysLog.'))
-        return chaos
-
-    def create_chaos(self, enable, disable, command_str, description):
-        return Chaos(enable=enable, disable=disable, group=self.group,
-                     command_str=command_str, description=description)
+                'Deny network traffic to the Juju API Server.',
+                FirewallAction.deny_port_rule(17017),
+                allow_incoming,
+                ),
+            FirewallChaos(
+                'deny-sys-log',
+                'Deny network traffic to the Juju SysLog.',
+                FirewallAction.deny_port_rule(6514),
+                allow_incoming,
+                ),
+        ]
 
     def shutdown(self):
-        self.reset()
+        # TODO(gz): Delete this? Each Chaos object cleans up firewall rules.
+        run_shell_command("ufw --force reset")
