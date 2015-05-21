@@ -4,6 +4,7 @@ from chaos_monkey import (
     ChaosMonkey,
     NotFound
 )
+from chaos.kill import Kill
 from chaos_monkey_base import Chaos
 from chaos.net import Net
 from tests.common_test_base import CommonTestBase
@@ -205,7 +206,7 @@ class TestChaosMonkey(CommonTestBase):
         self.assertTrue(all(c.command_str != 'deny-all' for c in cm.chaos))
 
     def test_exclude_commands(self):
-        commands = ['deny-all', 'jujud']
+        commands = ['deny-all', Kill.jujud_cmd]
         cm = ChaosMonkey.factory()
         cm.include_group('all')
         cm.exclude_command(commands)
@@ -213,25 +214,25 @@ class TestChaosMonkey(CommonTestBase):
         self.assertTrue(all(c.command_str not in commands for c in cm.chaos))
 
     def test_include_and_exclude_commands(self):
-        commands = ['deny-all', 'jujud']
+        commands = ['deny-all', Kill.jujud_cmd]
         cm = ChaosMonkey.factory()
         cm.include_command(commands)
         self.assertGreaterEqual(len(cm.chaos), 1)
         self.assertTrue(all(c.command_str in commands for c in cm.chaos))
-        cm.exclude_command(['jujud'])
+        cm.exclude_command([Kill.jujud_cmd])
         self.assertGreaterEqual(len(cm.chaos), 1)
-        self.assertTrue(all(c.command_str != 'jujud' for c in cm.chaos))
+        self.assertTrue(all(c.command_str != Kill.jujud_cmd for c in cm.chaos))
 
     def test_include_group_and_include_command(self):
         groups = ['net']
-        commands = ['jujud']
+        commands = [Kill.jujud_cmd]
         cm = ChaosMonkey.factory()
         cm.include_group(groups)
         self.assertGreaterEqual(len(cm.chaos), 1)
         self.assertTrue(all(c.group == 'net' for c in cm.chaos))
         cm.include_command(commands)
         self.assertGreaterEqual(len(cm.chaos), 1)
-        self.assertTrue(any(c.command_str == 'jujud' for c in cm.chaos))
+        self.assertTrue(any(c.command_str == Kill.jujud_cmd for c in cm.chaos))
         self.assertTrue(any(c.group == 'net' for c in cm.chaos))
         self.assertTrue(any(c.group == 'kill' for c in cm.chaos))
 

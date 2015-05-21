@@ -16,8 +16,11 @@ __metaclass__ = type
 class Kill(ChaosMonkeyBase):
     """Kills a process or shutdown a unit"""
 
+    jujud_cmd = 'kill-jujud'
+    mongod_cmd = 'kill-mongod'
+    group = 'kill'
+
     def __init__(self):
-        self.group = 'kill'
         super(Kill, self).__init__()
 
     @classmethod
@@ -63,15 +66,15 @@ class Kill(ChaosMonkeyBase):
                 enable=self.kill_jujud,
                 disable=None,
                 group=self.group,
-                command_str='jujud',
-                description='Jujud process has been killed.'))
+                command_str=self.jujud_cmd,
+                description='Kill jujud process.'))
         chaos.append(
             Chaos(
                 enable=self.kill_mongodb,
                 disable=None,
                 group=self.group,
-                command_str='mongod',
-                description='Mongod process has been killed.'))
+                command_str=self.mongod_cmd,
+                description='Kill mongod process.'))
         return chaos
 
     def shutdown(self):

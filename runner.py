@@ -1,4 +1,4 @@
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 import errno
 import logging
 import os
@@ -139,36 +139,71 @@ class Runner:
         self.stop_chaos = True
         logging.debug('self.stop_chaos: {}'.format(self.stop_chaos))
 
+    @staticmethod
+    def list_all_commands():
+        all_chaos, _ = ChaosMonkey.get_all_chaos()
+        all_groups = ChaosMonkey.get_all_groups()
+        commands = {}
+        for group in all_groups:
+            commands[group] = [[c.command_str, c.description]
+                               for c in all_chaos if c.group == group]
+        return commands
+
 
 def setup_sig_handlers(handler):
     signal.signal(signal.SIGTERM, handler)
     signal.signal(signal.SIGINT, handler)
 
 
+def get_all_commands():
+    commands = Runner.list_all_commands()
+    groups = commands.keys()
+    cmd_str = 'GROUP:  a comma-separated list of group names.\n'
+    cmd_str += '  Valid groups: {}\n\n'.format(', '.join(groups))
+    cmd_str += 'COMMANDS:  a comma-separated list of chaos commands:\n'
+
+    for group, values in commands.iteritems():
+        cmd_str += "  Group: " + group + "\n"
+        for value in values:
+            cmd_str += "     " + value[0] + ": " + value[1] + "\n"
+        cmd_str += "\n"
+    return cmd_str
+
+
 def parse_args(argv=None):
-    parser = ArgumentParser()
+    commands = get_all_commands()
+    parser = ArgumentParser(
+        description="Run Chaos Monkey.",  usage="[OPTIONS] path",
+        epilog=commands, formatter_class=RawDescriptionHelpFormatter)
     parser.add_argument(
         'path', help='An existing directory, to be used as a workspace.')
     parser.add_argument(
         '-et', '--enablement-timeout', default=10, type=int,
-        help="Enablement timeout in seconds")
+        help="Enablement timeout in seconds.", metavar='SECONDS')
     parser.add_argument(
-        '-tt', '--total-timeout', type=int, help="Total timeout in seconds")
+        '-tt', '--total-timeout', type=int, help="Total timeout in seconds.",
+        metavar='SECONDS')
     parser.add_argument(
-        '-lc', '--log-count', default=2, type=int,
+        '-lc', '--log-count', default=2, type=int, metavar='NUMBER',
         help='The number of backups to keep.')
     parser.add_argument(
-        '-ig', '--include-group',
-        help='Include these groups only in the test', default=None)
+        '-ig', '--include-group', metavar='GROUP',
+        help='Select chaos from only a specified group or set of groups. '
+             'All groups are included by default.',
+        default=None)
     parser.add_argument(
-        '-eg', '--exclude-group',
-        help='Exclude groups from the test', default=None)
+        '-eg', '--exclude-group', metavar='GROUP',
+        help='Exclude a group or set of groups from selected chaos.',
+        default=None)
     parser.add_argument(
-        '-ic', '--include-command',
-        help='Include commands in test.', default=None)
+        '-ic', '--include-command', metavar='COMMAND',
+        help="Select chaos from only a specified command or set of commands. "
+             "All commands are included by default.",
+        default=None)
     parser.add_argument(
-        '-ec', '--exclude-command',
-        help='Exclude commands in the test', default=None)
+        '-ec', '--exclude-command', metavar='COMMAND',
+        help='Exclude a command or set of commands from selected chaos.',
+        default=None)
     parser.add_argument(
         '-dr', '--dry-run', dest='dry_run', action='store_true',
         help='Do not actually run chaos operations.', default=False)
