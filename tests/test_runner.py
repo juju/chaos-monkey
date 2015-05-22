@@ -12,6 +12,7 @@ from chaos.kill import Kill
 from chaos_monkey import ChaosMonkey
 from chaos_monkey_base import Chaos
 from runner import (
+    display_all_commands,
     parse_args,
     Runner,
     setup_sig_handlers,
@@ -597,6 +598,30 @@ class TestRunner(CommonTestBase):
                         run_timeout=2, enablement_timeout=1, run_once=True)
         mock.assert_called_once_with(cm, 1)
         s_mock.assert_called_once_with(cm)
+
+    def test_list_all_commands(self):
+        cmd = Runner.list_all_commands()
+        self.assertItemsEqual(cmd.keys(), ChaosMonkey.get_all_groups())
+        all_commands = []
+        for commands in cmd.values():
+            for command in commands:
+                all_commands.extend(command)
+        self._assert_from_list(ChaosMonkey.get_all_commands(), all_commands)
+
+    def test_display_all_commands(self):
+        cmd = display_all_commands()
+        self._assert_from_list(ChaosMonkey.get_all_groups(), cmd)
+        self._assert_from_list(ChaosMonkey.get_all_commands(), cmd)
+
+    def test_display_all_commands_is_called(self):
+        with patch('runner.display_all_commands', autospec=True) as mock:
+            parse_args(['path'])
+        mock.assert_called_once_with()
+
+    def _assert_from_list(self, expected_items, result):
+        self.assertGreaterEqual(len(expected_items), 1)
+        for item in expected_items:
+            self.assertIn(item, result)
 
 
 def add_fake_group(chaos_monkey):

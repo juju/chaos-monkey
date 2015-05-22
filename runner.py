@@ -155,13 +155,12 @@ def setup_sig_handlers(handler):
     signal.signal(signal.SIGINT, handler)
 
 
-def get_all_commands():
+def display_all_commands():
     commands = Runner.list_all_commands()
     groups = commands.keys()
     cmd_str = 'GROUP:  a comma-separated list of group names.\n'
     cmd_str += '  Valid groups: {}\n\n'.format(', '.join(groups))
     cmd_str += 'COMMANDS:  a comma-separated list of chaos commands:\n'
-
     for group, values in commands.iteritems():
         cmd_str += "  Group: " + group + "\n"
         for value in values:
@@ -171,7 +170,7 @@ def get_all_commands():
 
 
 def parse_args(argv=None):
-    commands = get_all_commands()
+    commands = display_all_commands()
     parser = ArgumentParser(
         description="Run Chaos Monkey.",  usage="[OPTIONS] path",
         epilog=commands, formatter_class=RawDescriptionHelpFormatter)

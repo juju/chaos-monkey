@@ -315,4 +315,4 @@ class TestChaosMonkey(CommonTestBase):
         return get_all_net_commands() + get_all_kill_commands()
 
     def _get_all_groups(self):
-        return ['net', 'kill']
+        return ['net', Kill.group]
