@@ -77,9 +77,9 @@ class TestKill(CommonTestBase):
         kill = Kill()
         chaos = kill.get_chaos()
         for c in chaos:
-            if c.command_str == 'mongod':
+            if c.command_str == Kill.mongod_cmd:
                 self.assertEqual(c.enable, kill.kill_mongodb)
-            if c.command_str == 'jujud':
+            if c.command_str == Kill.jujud_cmd:
                 self.assertEqual(c.enable, kill.kill_jujud)
             self.assertEqual(c.group, 'kill')
             self.assertEqual(c.disable, None)
@@ -92,4 +92,4 @@ class TestKill(CommonTestBase):
 
 
 def get_all_kill_commands():
-    return ['jujud', 'mongod']
+    return [Kill.jujud_cmd, Kill.mongod_cmd]

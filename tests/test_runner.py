@@ -8,9 +8,11 @@ from time import time
 
 from mock import patch
 
+from chaos.kill import Kill
 from chaos_monkey import ChaosMonkey
 from chaos_monkey_base import Chaos
 from runner import (
+    display_all_commands,
     parse_args,
     Runner,
     setup_sig_handlers,
@@ -204,13 +206,13 @@ class TestRunner(CommonTestBase):
         self.verify_equals_to_all_chaos(runner.chaos_monkey.chaos)
 
     def test_filter_commands_include_groups(self):
-        include_group = 'net,kill'
+        include_group = 'net,{}'.format(Kill.group)
         with temp_dir() as directory:
             runner = Runner(directory, ChaosMonkey.factory())
             runner.filter_commands(include_group=include_group)
         self.assertGreaterEqual(len(runner.chaos_monkey.chaos), 2)
         self.assertTrue(
-            all(c.group == 'net' or c.group == 'kill'
+            all(c.group == 'net' or c.group == Kill.group
                 for c in runner.chaos_monkey.chaos))
 
     def test_filter_commands_include_group(self):
@@ -232,21 +234,21 @@ class TestRunner(CommonTestBase):
                             for c in runner.chaos_monkey.chaos))
 
     def test_filter_commands_exclude_groups(self):
-        exclude_groups = 'net,kill'
+        exclude_groups = 'net,{}'.format(Kill.group)
         with temp_dir() as directory:
             runner = Runner(directory, ChaosMonkey.factory())
             runner.filter_commands(exclude_group=exclude_groups)
         add_fake_group(runner.chaos_monkey.chaos)
         self.assertGreaterEqual(len(runner.chaos_monkey.chaos), 1)
         self.assertTrue(
-            all(c.group != 'net' and c.group != 'kill'
+            all(c.group != 'net' and c.group != Kill.group
                 for c in runner.chaos_monkey.chaos))
         self.assertTrue(any(c.group == 'fake_group'
                         for c in runner.chaos_monkey.chaos))
 
     def test_filter_commands_include_and_exclude_groups(self):
-        include_group = 'net,kill'
-        exclude_groups = 'kill'
+        include_group = 'net,{}'.format(Kill.group)
+        exclude_groups = Kill.group
         with temp_dir() as directory:
             runner = Runner(directory, ChaosMonkey.factory())
             runner.filter_commands(include_group=include_group,
@@ -286,17 +288,17 @@ class TestRunner(CommonTestBase):
                          'deny-incoming')
 
     def test_filter_command_exclude_command(self):
-        exclude_command = 'jujud'
+        exclude_command = Kill.jujud_cmd
         with temp_dir() as directory:
             runner = Runner(directory, ChaosMonkey.factory())
             runner.filter_commands(exclude_command=exclude_command)
         self.assertGreaterEqual(len(runner.chaos_monkey.chaos), 1)
-        self.assertTrue(all(c.command_str != 'jujud'
+        self.assertTrue(all(c.command_str != Kill.jujud_cmd
                             for c in runner.chaos_monkey.chaos))
 
     def test_filter_commands_include_group_and_include_command(self):
         include_group = 'net'
-        include_command = 'jujud'
+        include_command = Kill.jujud_cmd
         with temp_dir() as directory:
             runner = Runner(directory, ChaosMonkey.factory())
             runner.filter_commands(include_group=include_group,
@@ -304,14 +306,14 @@ class TestRunner(CommonTestBase):
         self.assertGreaterEqual(len(runner.chaos_monkey.chaos), 2)
         self.assertTrue(any(c.group == 'net'
                         for c in runner.chaos_monkey.chaos))
-        self.assertTrue(any(c.group == 'kill'
+        self.assertTrue(any(c.group == Kill.group
                         for c in runner.chaos_monkey.chaos))
-        self.assertTrue(any(c.command_str == 'jujud'
+        self.assertTrue(any(c.command_str == Kill.jujud_cmd
                         for c in runner.chaos_monkey.chaos))
 
     def test_filter_commands_include_group_and_include_commands(self):
         include_group = 'net'
-        include_command = 'jujud,mongod'
+        include_command = '{},{}'.format(Kill.jujud_cmd, Kill.mongod_cmd)
         with temp_dir() as directory:
             runner = Runner(directory, ChaosMonkey.factory())
             runner.filter_commands(include_group=include_group,
@@ -319,11 +321,11 @@ class TestRunner(CommonTestBase):
         self.assertGreaterEqual(len(runner.chaos_monkey.chaos), 2)
         self.assertTrue(any(c.group == 'net'
                         for c in runner.chaos_monkey.chaos))
-        self.assertTrue(any(c.group == 'kill'
+        self.assertTrue(any(c.group == Kill.group
                         for c in runner.chaos_monkey.chaos))
-        self.assertTrue(any(c.command_str == 'jujud'
+        self.assertTrue(any(c.command_str == Kill.jujud_cmd
                         for c in runner.chaos_monkey.chaos))
-        self.assertTrue(any(c.command_str == 'mongod'
+        self.assertTrue(any(c.command_str == Kill.jujud_cmd
                         for c in runner.chaos_monkey.chaos))
 
     def test_filter_commands_include_group_and_exclude_command(self):
@@ -355,23 +357,23 @@ class TestRunner(CommonTestBase):
                         for c in runner.chaos_monkey.chaos))
 
     def test_filter_commands_exclude_group_and_exclude_commands(self):
-        exclude_group = 'kill'
-        exclude_command = 'deny-all,jujud'
+        exclude_group = Kill.group
+        exclude_command = 'deny-all,{}'.format(Kill.jujud_cmd)
         with temp_dir() as directory:
             runner = Runner(directory, ChaosMonkey.factory())
             runner.filter_commands(exclude_group=exclude_group,
                                    exclude_command=exclude_command)
         self.assertGreaterEqual(len(runner.chaos_monkey.chaos), 1)
-        self.assertTrue(any(c.group != 'kill'
+        self.assertTrue(any(c.group != Kill.group
                         for c in runner.chaos_monkey.chaos))
         self.assertTrue(all(c.command_str != 'deny-all'
                         for c in runner.chaos_monkey.chaos))
-        self.assertTrue(all(c.command_str != 'jujud'
+        self.assertTrue(all(c.command_str != Kill.jujud_cmd
                         for c in runner.chaos_monkey.chaos))
 
     def test_filter_commands_exclude_groups_and_exclude_commands(self):
-        exclude_group = 'kill,net'
-        exclude_command = 'deny-all,jujud'
+        exclude_group = '{},net'.format(Kill.group)
+        exclude_command = 'deny-all,{}'.format(Kill.jujud_cmd)
         with temp_dir() as directory:
             runner = Runner(directory, ChaosMonkey.factory())
             runner.filter_commands(exclude_group=exclude_group,
@@ -380,20 +382,20 @@ class TestRunner(CommonTestBase):
         self.assertGreaterEqual(len(runner.chaos_monkey.chaos), 1)
         self.assertTrue(any(c.group == 'fake_group'
                         for c in runner.chaos_monkey.chaos))
-        self.assertTrue(any(c.group != 'kill'
+        self.assertTrue(any(c.group != Kill.group
                         for c in runner.chaos_monkey.chaos))
         self.assertTrue(any(c.group != 'net'
                         for c in runner.chaos_monkey.chaos))
         self.assertTrue(all(c.command_str != 'deny-all'
                         for c in runner.chaos_monkey.chaos))
-        self.assertTrue(all(c.command_str != 'jujud'
+        self.assertTrue(all(c.command_str != Kill.jujud_cmd
                         for c in runner.chaos_monkey.chaos))
 
     def test_filter_commands_include_exclude_group_and_command(self):
-        include_group = 'net,kill'
-        exclude_group = 'kill'
-        include_command = 'jujud'
-        exclude_command = 'deny-all,mongod'
+        include_group = 'net,{}'.format(Kill.group)
+        exclude_group = Kill.group
+        include_command = Kill.jujud_cmd
+        exclude_command = 'deny-all,{}'.format(Kill.mongod_cmd)
         with temp_dir() as directory:
             runner = Runner(directory, ChaosMonkey.factory())
             runner.filter_commands(include_group=include_group,
@@ -406,11 +408,12 @@ class TestRunner(CommonTestBase):
                         for c in runner.chaos_monkey.chaos))
         # Adding 'jujud' command automatically adds kill group but the only
         # command in kill group should be jujud
-        self.assertTrue(any(c.group == 'kill' and c.command_str == 'jujud'
-                        for c in runner.chaos_monkey.chaos))
+        self.assertTrue(
+            any(c.group == Kill.group and c.command_str == Kill.jujud_cmd
+                for c in runner.chaos_monkey.chaos))
         self.assertTrue(all(c.command_str != 'deny-all'
                         for c in runner.chaos_monkey.chaos))
-        self.assertTrue(all(c.command_str != 'mongod'
+        self.assertTrue(all(c.command_str != Kill.mongod_cmd
                         for c in runner.chaos_monkey.chaos))
 
     def test_filter_commands_gets_options_from_random_chaos(self):
@@ -420,14 +423,15 @@ class TestRunner(CommonTestBase):
                            autospec=True) as f_mock:
                     with temp_dir() as directory:
                         runner = Runner(directory, ChaosMonkey.factory())
-                        runner.random_chaos(run_timeout=1,
-                                            enablement_timeout=1,
-                                            include_group='net,kill',
-                                            exclude_group='kill',
-                                            include_command='deny-all',
-                                            exclude_command='deny-incoming')
-        expected = {'include_group': 'net,kill',
-                    'exclude_group': 'kill',
+                        runner.random_chaos(
+                            run_timeout=1,
+                            enablement_timeout=1,
+                            include_group='net,{}'.format(Kill.group),
+                            exclude_group=Kill.group,
+                            include_command='deny-all',
+                            exclude_command='deny-incoming')
+        expected = {'include_group': 'net,{}'.format(Kill.group),
+                    'exclude_group': Kill.group,
                     'include_command': 'deny-all',
                     'exclude_command': 'deny-incoming'}
         call_params = f_mock.call_args_list[0][1:]
@@ -435,8 +439,8 @@ class TestRunner(CommonTestBase):
             self.assertEqual(expected[k], v)
 
     def test_split_arg_string(self):
-        arg = split_arg_string('net,kill')
-        self.assertItemsEqual(arg, ['net', 'kill'])
+        arg = split_arg_string('net,{}'.format(Kill.group))
+        self.assertItemsEqual(arg, ['net', Kill.group])
         arg = split_arg_string('net')
         self.assertItemsEqual(arg, ['net'])
 
@@ -447,10 +451,10 @@ class TestRunner(CommonTestBase):
         self.assertItemsEqual(groups, ['net'])
 
     def test_validate_groups(self):
-        groups = "net,kill"
+        groups = "net,{}".format(Kill.group)
         all_groups = ChaosMonkey.get_all_groups()
         groups = Runner._validate(groups, all_groups)
-        self.assertItemsEqual(groups, ['net', 'kill'])
+        self.assertItemsEqual(groups, ['net', Kill.group])
 
     def test_validate_incorrect_group(self):
         groups = "net,killl"
@@ -466,11 +470,11 @@ class TestRunner(CommonTestBase):
         self.assertItemsEqual(commands, ['deny-all'])
 
     def test_validate_commands(self):
-        commands = "deny-all,jujud,deny-api-server"
+        commands = "deny-all,{},deny-api-server".format(Kill.jujud_cmd)
         all_commands = ChaosMonkey.get_all_commands()
         commands = Runner._validate(commands, all_commands)
         self.assertItemsEqual(
-            commands, ['deny-all', 'jujud', 'deny-api-server'])
+            commands, ['deny-all', Kill.jujud_cmd, 'deny-api-server'])
 
     def test_validate_incorrect_command(self):
         commands = "deny-all,monogd,deny-api-server"
@@ -505,7 +509,7 @@ class TestRunner(CommonTestBase):
                 runner.filter_commands(include_command=include_command)
 
     def test_filter_command_exclude_incorrect_command(self):
-        exclude_command = 'deny-all,deny-net,jujud'
+        exclude_command = 'deny-all,deny-net,{}'.format(Kill.jujud_cmd)
         with temp_dir() as directory:
             runner = Runner(directory, ChaosMonkey.factory())
             with self.assertRaisesRegexp(
@@ -528,14 +532,14 @@ class TestRunner(CommonTestBase):
                            '--total-timeout', '600',
                            '--log-count', '4',
                            '--include-group', 'net',
-                           '--exclude-group', 'kill',
+                           '--exclude-group', Kill.group,
                            '--include-command', 'deny-all',
                            '--exclude-command', 'deny-incoming',
                            '--dry-run'])
         self.assertEqual(
             args, Namespace(path='path', enablement_timeout=30,
                             total_timeout=600, log_count=4,
-                            include_group='net', exclude_group='kill',
+                            include_group='net', exclude_group=Kill.group,
                             include_command='deny-all',
                             exclude_command='deny-incoming', dry_run=True,
                             run_once=False))
@@ -545,7 +549,7 @@ class TestRunner(CommonTestBase):
                            '--enablement-timeout', '30',
                            '--log-count', '4',
                            '--include-group', 'net',
-                           '--exclude-group', 'kill',
+                           '--exclude-group', Kill.group,
                            '--include-command', 'deny-all',
                            '--exclude-command', 'deny-incoming',
                            '--dry-run',
@@ -553,7 +557,7 @@ class TestRunner(CommonTestBase):
         self.assertEqual(
             args, Namespace(path='path', enablement_timeout=30,
                             total_timeout=30, log_count=4,
-                            include_group='net', exclude_group='kill',
+                            include_group='net', exclude_group=Kill.group,
                             include_command='deny-all',
                             exclude_command='deny-incoming', dry_run=True,
                             run_once=True))
@@ -594,6 +598,30 @@ class TestRunner(CommonTestBase):
                         run_timeout=2, enablement_timeout=1, run_once=True)
         mock.assert_called_once_with(cm, 1)
         s_mock.assert_called_once_with(cm)
+
+    def test_list_all_commands(self):
+        cmd = Runner.list_all_commands()
+        self.assertItemsEqual(cmd.keys(), ChaosMonkey.get_all_groups())
+        all_commands = []
+        for commands in cmd.values():
+            for command in commands:
+                all_commands.extend(command)
+        self._assert_from_list(ChaosMonkey.get_all_commands(), all_commands)
+
+    def test_display_all_commands(self):
+        cmd = display_all_commands()
+        self._assert_from_list(ChaosMonkey.get_all_groups(), cmd)
+        self._assert_from_list(ChaosMonkey.get_all_commands(), cmd)
+
+    def test_display_all_commands_is_called(self):
+        with patch('runner.display_all_commands', autospec=True) as mock:
+            parse_args(['path'])
+        mock.assert_called_once_with()
+
+    def _assert_from_list(self, expected_items, result):
+        self.assertGreaterEqual(len(expected_items), 1)
+        for item in expected_items:
+            self.assertIn(item, result)
 
 
 def add_fake_group(chaos_monkey):
