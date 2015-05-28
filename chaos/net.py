@@ -26,11 +26,6 @@ class FirewallAction:
         return cls("ufw --force enable", "ufw disable")
 
     @classmethod
-    def default_allow(cls):
-        """Gives an action for allowing and denying incoming connections."""
-        return cls("ufw default allow", "ufw default deny")
-
-    @classmethod
     def rule(cls, rule):
         """Gives an action for creating and deleting a given firewall rule."""
         return cls("ufw {}".format(rule), "ufw delete {}".format(rule))
@@ -80,45 +75,48 @@ class Net(ChaosMonkeyBase):
         return cls()
 
     def get_chaos(self):
-        allow_incoming = FirewallAction.default_allow()
         allow_ssh = FirewallAction.rule("allow ssh")
+        allow_in_to_any = FirewallAction.rule("allow in to any")
+        deny_in_to_any = FirewallAction.rule("deny in to any")
         deny_out_to_any = FirewallAction.rule("deny out to any")
         return [
             FirewallChaos(
                 'deny-all',
                 'Deny all incoming and outgoing network traffic except ssh.',
                 allow_ssh,
+                deny_in_to_any,
                 deny_out_to_any,
                 ),
             FirewallChaos(
                 'deny-incoming',
                 'Deny all incoming network traffic except ssh.',
                 allow_ssh,
+                deny_in_to_any,
                 ),
             FirewallChaos(
                 'deny-outgoing',
                 'Deny all outgoing network traffic except ssh.',
                 allow_ssh,
                 deny_out_to_any,
-                allow_incoming,
+                allow_in_to_any,
                 ),
             FirewallChaos(
                 'deny-state-server',
                 'Deny network traffic to the Juju State-Server',
                 FirewallAction.deny_port_rule(37017),
-                allow_incoming,
+                allow_in_to_any,
                 ),
             FirewallChaos(
                 'deny-api-server',
                 'Deny network traffic to the Juju API Server.',
                 FirewallAction.deny_port_rule(17017),
-                allow_incoming,
+                allow_in_to_any,
                 ),
             FirewallChaos(
                 'deny-sys-log',
                 'Deny network traffic to the Juju SysLog.',
                 FirewallAction.deny_port_rule(6514),
-                allow_incoming,
+                allow_in_to_any,
                 ),
         ]
 

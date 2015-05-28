@@ -49,10 +49,10 @@ class TestChaosMonkey(CommonTestBase):
             cm.run_chaos('net', 'deny-state-server', timeout=0)
         self.assertEqual(mock.mock_calls, [
             call(['ufw', 'deny', '37017']),
-            call(['ufw', 'default', 'allow']),
+            call(['ufw', 'allow', 'in', 'to', 'any']),
             call(['ufw', '--force', 'enable']),
             call(['ufw', 'disable']),
-            call(['ufw', 'default', 'deny']),
+            call(['ufw', 'delete', 'allow', 'in', 'to', 'any']),
             call(['ufw', 'delete', 'deny', '37017']),
         ])
 
@@ -94,10 +94,10 @@ class TestChaosMonkey(CommonTestBase):
             cm._run_command(chaos, timeout=0)
         self.assertEqual(mock.mock_calls, [
             call(['ufw', 'deny', '37017']),
-            call(['ufw', 'default', 'allow']),
+            call(['ufw', 'allow', 'in', 'to', 'any']),
             call(['ufw', '--force', 'enable']),
             call(['ufw', 'disable']),
-            call(['ufw', 'default', 'deny']),
+            call(['ufw', 'delete', 'allow', 'in', 'to', 'any']),
             call(['ufw', 'delete', 'deny', '37017']),
         ])
 

@@ -22,11 +22,6 @@ class TestFirewallAction(CommonTestBase):
         self.assertEqual(action.do_command, "ufw --force enable")
         self.assertEqual(action.undo_command, "ufw disable")
 
-    def test_default_allow(self):
-        action = FirewallAction.default_allow()
-        self.assertEqual(action.do_command, "ufw default allow")
-        self.assertEqual(action.undo_command, "ufw default deny")
-
     def test_rule(self):
         action = FirewallAction.rule("allow from 192.168.1.0/24")
         self.assertEqual(action.do_command, "ufw allow from 192.168.1.0/24")
@@ -55,14 +50,16 @@ class TestFirewallAction(CommonTestBase):
         mock.assert_called_once_with(["off"])
 
 
+allow_in_call = call(['ufw', 'allow', 'in', 'to', 'any'])
+deny_in_call = call(['ufw', 'deny', 'in', 'to', 'any'])
 deny_out_call = call(['ufw', 'deny', 'out', 'to', 'any'])
 allow_ssh_call = call(['ufw', 'allow', 'ssh'])
-default_allow_call = call(['ufw', 'default', 'allow'])
 enable_call = call(['ufw', '--force', 'enable'])
 disable_call = call(['ufw', 'disable'])
-default_deny_call = call(['ufw', 'default', 'deny'])
 delete_ssh_call = call(['ufw', 'delete', 'allow', 'ssh'])
-allow_out_call = call(['ufw', 'delete', 'deny', 'out', 'to', 'any'])
+delete_deny_out_call = call(['ufw', 'delete', 'deny', 'out', 'to', 'any'])
+delete_deny_in_call = call(['ufw', 'delete', 'deny', 'in', 'to', 'any'])
+delete_allow_in_call = call(['ufw', 'delete', 'allow', 'in', 'to', 'any'])
 
 
 class TestNet(CommonTestBase):
@@ -100,53 +97,59 @@ class TestNet(CommonTestBase):
         chaos = self.get_net_chaos("deny-all")
         self.assert_calls(
             chaos.enable,
-            [allow_ssh_call, deny_out_call, enable_call])
+            [allow_ssh_call, deny_in_call, deny_out_call, enable_call])
         self.assert_calls(
             chaos.disable,
-            [disable_call, allow_out_call, delete_ssh_call])
+            [disable_call, delete_deny_out_call, delete_deny_in_call,
+             delete_ssh_call])
 
     def test_deny_incoming(self):
         chaos = self.get_net_chaos("deny-incoming")
-        self.assert_calls(chaos.enable, [allow_ssh_call, enable_call])
-        self.assert_calls(chaos.disable, [disable_call, delete_ssh_call])
+        self.assert_calls(
+            chaos.enable,
+            [allow_ssh_call, deny_in_call, enable_call])
+        self.assert_calls(
+            chaos.disable,
+            [disable_call, delete_deny_in_call, delete_ssh_call])
 
     def test_deny_outgoing(self):
         chaos = self.get_net_chaos("deny-outgoing")
         self.assert_calls(
             chaos.enable,
-            [allow_ssh_call, deny_out_call, default_allow_call, enable_call])
+            [allow_ssh_call, deny_out_call, allow_in_call, enable_call])
         self.assert_calls(
             chaos.disable,
-            [disable_call, default_deny_call, allow_out_call, delete_ssh_call])
+            [disable_call, delete_allow_in_call, delete_deny_out_call,
+             delete_ssh_call])
 
     def test_deny_state_server(self):
         chaos = self.get_net_chaos("deny-state-server")
         self.assert_calls(
             chaos.enable,
-            [call(['ufw', 'deny', '37017']), default_allow_call, enable_call])
+            [call(['ufw', 'deny', '37017']), allow_in_call, enable_call])
         self.assert_calls(
             chaos.disable,
-            [disable_call, default_deny_call,
+            [disable_call, delete_allow_in_call,
              call(['ufw', 'delete', 'deny', '37017'])])
 
     def test_deny_api_server(self):
         chaos = self.get_net_chaos("deny-api-server")
         self.assert_calls(
             chaos.enable,
-            [call(['ufw', 'deny', '17017']), default_allow_call, enable_call])
+            [call(['ufw', 'deny', '17017']), allow_in_call, enable_call])
         self.assert_calls(
             chaos.disable,
-            [disable_call, default_deny_call,
+            [disable_call, delete_allow_in_call,
              call(['ufw', 'delete', 'deny', '17017'])])
 
     def test_deny_sys_log(self):
         chaos = self.get_net_chaos("deny-sys-log")
         self.assert_calls(
             chaos.enable,
-            [call(['ufw', 'deny', '6514']), default_allow_call, enable_call])
+            [call(['ufw', 'deny', '6514']), allow_in_call, enable_call])
         self.assert_calls(
             chaos.disable,
-            [disable_call, default_deny_call,
+            [disable_call, delete_allow_in_call,
              call(['ufw', 'delete', 'deny', '6514'])])
 
 
