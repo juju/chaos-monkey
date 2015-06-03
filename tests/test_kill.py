@@ -92,4 +92,4 @@ class TestKill(CommonTestBase):
 
 
 def get_all_kill_commands():
-    return [Kill.jujud_cmd, Kill.mongod_cmd]
+    return [Kill.jujud_cmd, Kill.mongod_cmd, Kill.restart_cmd]

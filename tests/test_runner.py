@@ -6,11 +6,12 @@ import subprocess
 from StringIO import StringIO
 from time import time
 
-from mock import patch
+from mock import patch, call
 
 from chaos.kill import Kill
 from chaos_monkey import ChaosMonkey
 from chaos_monkey_base import Chaos
+from chaos.net import Net
 from runner import (
     display_all_commands,
     parse_args,
@@ -116,14 +117,16 @@ class TestRunner(CommonTestBase):
         with patch('utility.check_output', autospec=True) as mock:
             with temp_dir() as directory:
                 runner = Runner(directory, ChaosMonkey.factory())
-                runner.random_chaos(run_timeout=1, enablement_timeout=1)
+                runner.random_chaos(run_timeout=1, enablement_timeout=1,
+                                    exclude_command=Kill.restart_cmd)
         self.assertEqual(mock.called, True)
 
     def test_random_enablement_zero(self):
         with patch('utility.check_output', autospec=True) as mock:
             with temp_dir() as directory:
                 runner = Runner(directory, ChaosMonkey.factory())
-                runner.random_chaos(run_timeout=1, enablement_timeout=0)
+                runner.random_chaos(run_timeout=1, enablement_timeout=0,
+                                    exclude_command=Kill.restart_cmd)
         self.assertEqual(mock.called, True)
 
     def test_random_verify_timeout(self):
@@ -133,44 +136,44 @@ class TestRunner(CommonTestBase):
             with temp_dir() as directory:
                 runner = Runner(directory, ChaosMonkey.factory())
                 runner.random_chaos(run_timeout=run_timeout,
-                                    enablement_timeout=2)
+                                    enablement_timeout=2,
+                                    exclude_command=Kill.restart_cmd)
             end_time = time()
         self.assertEqual(run_timeout, int(end_time-current_time))
         self.assertEqual(mock.called, True)
 
-    def test_random_assert_chaos_monkey_methods_called(self):
-        with patch('runner.ChaosMonkey', autospec=True) as cm_mock:
-            with temp_dir() as directory:
-                runner = Runner.factory(directory, ChaosMonkey.factory())
-                runner.random_chaos(run_timeout=1, enablement_timeout=1)
-        cm_mock.factory.return_value.run_random_chaos.assert_called_with(1)
-        cm_mock.factory.return_value.shutdown.assert_called_with()
+    def test_random_assert_run_command_method_called(self):
+        with patch('utility.check_output', autospec=True):
+            with patch('runner.Runner._run_command', autospec=True) as cm_mock:
+                with temp_dir() as directory:
+                    runner = Runner.factory(directory, ChaosMonkey.factory())
+                    runner.random_chaos(run_timeout=1, enablement_timeout=1)
+        cm_mock.assert_called_with(runner, 1)
 
     def test_random_assert_chaos_methods_called(self):
         net_ctx = patch('chaos.net.Net', autospec=True)
         kill_ctx = patch('chaos.kill.Kill', autospec=True)
         with patch('utility.check_output', autospec=True):
-            with patch('chaos_monkey.ChaosMonkey.run_random_chaos',
-                       autospec=True):
+            with patch('runner.Runner._run_command', autospec=True):
                 with net_ctx as net_mock:
                     with kill_ctx as kill_mock:
                         with temp_dir() as directory:
                             runner = Runner(directory, ChaosMonkey.factory())
-                            runner.random_chaos(run_timeout=1,
-                                                enablement_timeout=1)
+                            runner.random_chaos(
+                                run_timeout=1, enablement_timeout=1)
         net_mock.factory.return_value.shutdown.assert_called_with()
         kill_mock.factory.return_value.shutdown.assert_called_with()
         net_mock.factory.return_value.get_chaos.assert_called_with()
         kill_mock.factory.return_value.get_chaos.assert_called_with()
 
-    def test_random_passes_timeout(self):
+    def test_random_chaos_passes_timeout(self):
         with patch('utility.check_output', autospec=True):
-            with patch('chaos_monkey.ChaosMonkey._run_command',
+            with patch('runner.Runner._run_command',
                        autospec=True) as mock:
                 with temp_dir() as directory:
                     runner = Runner(directory, ChaosMonkey.factory())
                     runner.random_chaos(run_timeout=3, enablement_timeout=2)
-        self.assertEqual(mock.call_args_list[0][1]['timeout'], 2)
+        self.assertEqual(mock.call_args_list[0][0][1], 2)
 
     def test_setup_sig_handler_sets_stop_chaos_on_SIGINT(self):
         with temp_dir() as directory:
@@ -417,8 +420,8 @@ class TestRunner(CommonTestBase):
                         for c in runner.chaos_monkey.chaos))
 
     def test_filter_commands_gets_options_from_random_chaos(self):
-        with patch('chaos_monkey.ChaosMonkey.run_random_chaos'):
-            with patch('chaos_monkey.ChaosMonkey.shutdown'):
+        with patch('chaos_monkey.ChaosMonkey.shutdown'):
+            with patch('runner.Runner._run_command', autospec=True):
                 with patch('runner.Runner.filter_commands',
                            autospec=True) as f_mock:
                     with temp_dir() as directory:
@@ -524,7 +527,7 @@ class TestRunner(CommonTestBase):
                             total_timeout=10, log_count=2, include_group=None,
                             exclude_group=None, include_command=None,
                             exclude_command=None, dry_run=False,
-                            run_once=False))
+                            run_once=False, restart=False, expire_time=None))
 
     def test_parse_args_non_default_values(self):
         args = parse_args(['path',
@@ -535,14 +538,16 @@ class TestRunner(CommonTestBase):
                            '--exclude-group', Kill.group,
                            '--include-command', 'deny-all',
                            '--exclude-command', 'deny-incoming',
-                           '--dry-run'])
+                           '--dry-run',
+                           '--restart',
+                           '--expire-time', '111.11'])
         self.assertEqual(
             args, Namespace(path='path', enablement_timeout=30,
                             total_timeout=600, log_count=4,
                             include_group='net', exclude_group=Kill.group,
                             include_command='deny-all',
                             exclude_command='deny-incoming', dry_run=True,
-                            run_once=False))
+                            run_once=False, restart=True, expire_time=111.11))
 
     def test_parse_args_non_default_values_set_run_once(self):
         args = parse_args(['path',
@@ -560,7 +565,7 @@ class TestRunner(CommonTestBase):
                             include_group='net', exclude_group=Kill.group,
                             include_command='deny-all',
                             exclude_command='deny-incoming', dry_run=True,
-                            run_once=True))
+                            run_once=True, restart=False, expire_time=None))
 
     def test_parse_args_error_enablement_greater_than_total_timeout(self):
         with parse_error(self) as stderr:
@@ -588,7 +593,7 @@ class TestRunner(CommonTestBase):
 
     def test_random_chaos_run_once(self):
         cm = ChaosMonkey.factory()
-        with patch('chaos_monkey.ChaosMonkey.run_random_chaos',
+        with patch('runner.Runner._run_command',
                    autospec=True) as mock:
             with patch('chaos_monkey.ChaosMonkey.shutdown',
                        autospec=True) as s_mock:
@@ -596,7 +601,7 @@ class TestRunner(CommonTestBase):
                     runner = Runner(directory, cm)
                     runner.random_chaos(
                         run_timeout=2, enablement_timeout=1, run_once=True)
-        mock.assert_called_once_with(cm, 1)
+        mock.assert_called_once_with(runner, 1)
         s_mock.assert_called_once_with(cm)
 
     def test_list_all_commands(self):
@@ -622,6 +627,28 @@ class TestRunner(CommonTestBase):
         self.assertGreaterEqual(len(expected_items), 1)
         for item in expected_items:
             self.assertIn(item, result)
+
+    def test_run_command(self):
+        net = Net()
+        for chaos in net.get_chaos():
+            if chaos.command_str == "deny-state-server":
+                break
+        else:
+            self.fail("'deny-state-server' chaos not found")
+        with patch('utility.check_output', autospec=True) as mock:
+            with patch(
+                    'runner.random.choice', autospec=True, return_value=chaos):
+                with temp_dir() as directory:
+                    runner = Runner(directory, ChaosMonkey.factory())
+                    runner._run_command(enablement_timeout=0)
+        self.assertEqual(mock.mock_calls, [
+            call(['ufw', 'deny', '37017']),
+            call(['ufw', 'allow', 'in', 'to', 'any']),
+            call(['ufw', '--force', 'enable']),
+            call(['ufw', 'disable']),
+            call(['ufw', 'delete', 'allow', 'in', 'to', 'any']),
+            call(['ufw', 'delete', 'deny', '37017']),
+        ])
 
 
 def add_fake_group(chaos_monkey):

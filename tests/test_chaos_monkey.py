@@ -1,11 +1,9 @@
-from mock import patch, call
+from mock import patch
 
 from chaos_monkey import (
     ChaosMonkey,
-    NotFound
 )
 from chaos.kill import Kill
-from chaos.net import Net
 from tests.common_test_base import CommonTestBase
 from tests.test_kill import get_all_kill_commands
 from tests.test_net import get_all_net_commands
@@ -27,80 +25,6 @@ class TestChaosMonkey(CommonTestBase):
         all_chaos, all_factory_obj = cm.get_all_chaos()
         self.assertItemsEqual(
             self._get_command_str(all_chaos),  self._get_all_command_strings())
-
-    def test_run_random_chaos(self):
-        cm = ChaosMonkey.factory()
-        cm.include_group('all')
-        with patch('utility.check_output', autospec=True) as mock:
-            cm.run_random_chaos(timeout=0)
-        self.assertEqual(mock.called, True)
-
-    def test_run_random_chaos_passes_timeout(self):
-        cm = ChaosMonkey.factory()
-        cm.include_group('all')
-        with patch('chaos_monkey.ChaosMonkey._run_command',
-                   autospec=True) as mock:
-            cm.run_random_chaos(timeout=1)
-        self.assertEqual(1, mock.call_args_list[0][1]['timeout'])
-
-    def test_run_chaos(self):
-        cm = ChaosMonkey.factory()
-        cm.include_group('all')
-        with patch('utility.check_output', autospec=True) as mock:
-            cm.run_chaos('net', 'deny-state-server', timeout=0)
-        self.assertEqual(mock.mock_calls, [
-            call(['ufw', 'deny', '37017']),
-            call(['ufw', 'allow', 'in', 'to', 'any']),
-            call(['ufw', '--force', 'enable']),
-            call(['ufw', 'disable']),
-            call(['ufw', 'delete', 'allow', 'in', 'to', 'any']),
-            call(['ufw', 'delete', 'deny', '37017']),
-        ])
-
-    def test_run_chaos_passes_timeout(self):
-        cm = ChaosMonkey.factory()
-        cm.include_group('all')
-        with patch('chaos_monkey.ChaosMonkey._run_command',
-                   autospec=True) as mock:
-            cm.run_chaos('net', 'deny-all', timeout=0)
-        self.assertEqual(0, mock.call_args_list[0][1]['timeout'])
-
-    def test_run_chaos_raises_for_command_str(self):
-        cm = ChaosMonkey.factory()
-        cm.include_group('all')
-        with patch('utility.check_output', autospec=True):
-            with self.assertRaisesRegexp(
-                    NotFound,
-                    "Command not found: group: net command_str:foo"):
-                cm.run_chaos('net', 'foo', timeout=0)
-
-    def test_run_chaos_raises_for_group(self):
-        cm = ChaosMonkey.factory()
-        cm.include_group('all')
-        with patch('utility.check_output', autospec=True):
-            with self.assertRaisesRegexp(
-                    NotFound,
-                    "Command not found: group: bar command_str:deny-all"):
-                cm.run_chaos('bar', 'deny-all', timeout=0)
-
-    def test_run_command(self):
-        cm = ChaosMonkey.factory()
-        net = Net()
-        for chaos in net.get_chaos():
-            if chaos.command_str == "deny-state-server":
-                break
-        else:
-            self.fail("'deny-state-server' chaos not found")
-        with patch('utility.check_output', autospec=True) as mock:
-            cm._run_command(chaos, timeout=0)
-        self.assertEqual(mock.mock_calls, [
-            call(['ufw', 'deny', '37017']),
-            call(['ufw', 'allow', 'in', 'to', 'any']),
-            call(['ufw', '--force', 'enable']),
-            call(['ufw', 'disable']),
-            call(['ufw', 'delete', 'allow', 'in', 'to', 'any']),
-            call(['ufw', 'delete', 'deny', '37017']),
-        ])
 
     def test_shutdown(self):
         cm = ChaosMonkey.factory()

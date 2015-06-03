@@ -18,6 +18,7 @@ class Kill(ChaosMonkeyBase):
 
     jujud_cmd = 'kill-jujud'
     mongod_cmd = 'kill-mongod'
+    restart_cmd = 'restart-unit'
     group = 'kill'
 
     def __init__(self):
@@ -75,6 +76,13 @@ class Kill(ChaosMonkeyBase):
                 group=self.group,
                 command_str=self.mongod_cmd,
                 description='Kill mongod process.'))
+        chaos.append(
+            Chaos(
+                enable=self.restart_unit,
+                disable=None,
+                group=self.group,
+                command_str=self.restart_cmd,
+                description='Restart the unit.'))
         return chaos
 
     def shutdown(self):
