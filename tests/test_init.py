@@ -60,6 +60,27 @@ class TestInit(TestCase):
             init.uninstall()
             self.assertIs(os.path.isfile(init_fd.name), False)
 
+    def test_remove_args(self):
+        cmd_arg = ("--include-command restart-unit --enablement-timeout 1"
+                   " /home/myhome --expire-time 946598401 --restart")
+        expected = ("--include-command restart-unit --enablement-timeout 1"
+                    " /home/myhome")
+        result = Init._remove_args(cmd_arg)
+        self.assertEqual(result, expected)
+
+    def test_remove_args_restart_in_middle_of_string(self):
+        cmd_arg = ("--include-command restart-unit --enablement-timeout 1"
+                   " /home/myhome --restart --expire-time 946598401")
+        expected = ("--include-command restart-unit --enablement-timeout 1"
+                    " /home/myhome")
+        result = Init._remove_args(cmd_arg)
+        self.assertEqual(result, expected)
+
+    def test_remove_args_no_expire_time_and_no_restart(self):
+        cmd_arg = ("--include-command restart-unit --enablement-timeout 1 "
+                   "/home/myhome")
+        result = Init._remove_args(cmd_arg)
+        self.assertEqual(result, cmd_arg)
 
 def get_chaos_monkey_dir():
     return os.path.dirname(os.path.dirname(os.path.realpath(__file__)))

@@ -257,10 +257,10 @@ if __name__ == '__main__':
     runner = Runner.factory(workspace=args.path, log_count=args.log_count,
                             dry_run=args.dry_run)
     setup_sig_handlers(runner.sig_handler)
-    runner.acquire_lock(args.restart)
-    msg = 'started' if not args.restart else 'restarted after a shutdown'
+    msg = 'started' if not args.restart else 'restarted after a reboot'
     logging.info('Chaos Monkey {} in {}'.format(msg, args.path))
     logging.debug('Dry run is set to {}'.format(args.dry_run))
+    runner.acquire_lock(args.restart)
     try:
         runner.random_chaos(
             run_timeout=args.total_timeout,
@@ -269,7 +269,8 @@ if __name__ == '__main__':
             exclude_group=args.exclude_group,
             include_command=args.include_command,
             exclude_command=args.exclude_command,
-            run_once=args.run_once)
+            run_once=args.run_once,
+            expire_time=args.expire_time)
     except Exception as e:
         logging.error('{} ({})'.format(e, type(e).__name__))
         sys.exit(1)
