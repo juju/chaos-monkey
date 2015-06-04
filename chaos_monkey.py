@@ -85,7 +85,3 @@ class ChaosMonkey:
             if item.command_str == command_str:
                 return item
         return None
-
-    def shutdown(self):
-        for obj in self.factory_obj:
-            obj.shutdown()

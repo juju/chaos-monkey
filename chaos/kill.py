@@ -84,6 +84,3 @@ class Kill(ChaosMonkeyBase):
                 command_str=self.restart_cmd,
                 description='Restart the unit.'))
         return chaos
-
-    def shutdown(self):
-        pass

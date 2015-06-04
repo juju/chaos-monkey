@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-import os
+import subprocess
 
 
 def parse_args(argv=None):
@@ -18,9 +18,9 @@ def parse_args(argv=None):
 
 
 def restart_chaos_monkey(args):
-    cmd = 'python {} {} --expire-time {} --restart &'.format(
-        args.runner_path, args.cmd_arg, args.expire_time)
-    os.system(cmd)
+    cmd = (['python'] + [args.runner_path] + args.cmd_arg.split(' ') +
+           ['--expire-time'] + [str(args.expire_time)] + ['--restart'])
+    subprocess.Popen(cmd)
 
 
 if __name__ == '__main__':

@@ -1,5 +1,3 @@
-from mock import patch
-
 from chaos_monkey import (
     ChaosMonkey,
 )
@@ -25,12 +23,6 @@ class TestChaosMonkey(CommonTestBase):
         all_chaos, all_factory_obj = cm.get_all_chaos()
         self.assertItemsEqual(
             self._get_command_str(all_chaos),  self._get_all_command_strings())
-
-    def test_shutdown(self):
-        cm = ChaosMonkey.factory()
-        with patch('utility.check_output', autospec=True) as mock:
-            cm.shutdown()
-        mock.assert_any_call(['ufw', '--force', 'reset'])
 
     def test_include_group(self):
         group = ['net']

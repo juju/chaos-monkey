@@ -13,10 +13,6 @@ class ChaosMonkeyBase:
     def get_chaos(self):
         raise NotImplemented
 
-    @abc.abstractmethod
-    def shutdown(self):
-        raise NotImplemented
-
 
 class Chaos:
 

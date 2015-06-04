@@ -87,8 +87,6 @@ class Runner:
             self._run_command(enablement_timeout)
             if run_once:
                 break
-        if not self.dry_run:
-            self.chaos_monkey.shutdown()
 
     def _run_command(self, enablement_timeout):
         chaos = random.choice(self.chaos_monkey.chaos)

@@ -28,8 +28,8 @@ class TestRestartChaosMonkey(TestCase):
             '--runner-path', '/path/runner.py',
             '--expire-time', '123.0',
             '--cmd-arg', '--include-command deny-all workspace'])
-        with patch('os.system', autospec=True) as mock:
+        with patch('subprocess.Popen', autospec=True) as mock:
             restart_chaos_monkey(args)
         mock.assert_called_once_with(
-            'python /path/runner.py --include-command deny-all workspace '
-            '--expire-time 123.0 --restart &')
+            ['python', '/path/runner.py', '--include-command', 'deny-all',
+             'workspace', '--expire-time', '123.0', '--restart'])

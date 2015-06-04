@@ -161,8 +161,6 @@ class TestRunner(CommonTestBase):
                             runner = Runner(directory, ChaosMonkey.factory())
                             runner.random_chaos(
                                 run_timeout=1, enablement_timeout=1)
-        net_mock.factory.return_value.shutdown.assert_called_with()
-        kill_mock.factory.return_value.shutdown.assert_called_with()
         net_mock.factory.return_value.get_chaos.assert_called_with()
         kill_mock.factory.return_value.get_chaos.assert_called_with()
 
@@ -420,19 +418,18 @@ class TestRunner(CommonTestBase):
                         for c in runner.chaos_monkey.chaos))
 
     def test_filter_commands_gets_options_from_random_chaos(self):
-        with patch('chaos_monkey.ChaosMonkey.shutdown'):
-            with patch('runner.Runner._run_command', autospec=True):
-                with patch('runner.Runner.filter_commands',
-                           autospec=True) as f_mock:
-                    with temp_dir() as directory:
-                        runner = Runner(directory, ChaosMonkey.factory())
-                        runner.random_chaos(
-                            run_timeout=1,
-                            enablement_timeout=1,
-                            include_group='net,{}'.format(Kill.group),
-                            exclude_group=Kill.group,
-                            include_command='deny-all',
-                            exclude_command='deny-incoming')
+        with patch('runner.Runner._run_command', autospec=True):
+            with patch('runner.Runner.filter_commands',
+                       autospec=True) as f_mock:
+                with temp_dir() as directory:
+                    runner = Runner(directory, ChaosMonkey.factory())
+                    runner.random_chaos(
+                        run_timeout=1,
+                        enablement_timeout=1,
+                        include_group='net,{}'.format(Kill.group),
+                        exclude_group=Kill.group,
+                        include_command='deny-all',
+                        exclude_command='deny-incoming')
         expected = {'include_group': 'net,{}'.format(Kill.group),
                     'exclude_group': Kill.group,
                     'include_command': 'deny-all',
@@ -595,14 +592,11 @@ class TestRunner(CommonTestBase):
         cm = ChaosMonkey.factory()
         with patch('runner.Runner._run_command',
                    autospec=True) as mock:
-            with patch('chaos_monkey.ChaosMonkey.shutdown',
-                       autospec=True) as s_mock:
-                with temp_dir() as directory:
-                    runner = Runner(directory, cm)
-                    runner.random_chaos(
-                        run_timeout=2, enablement_timeout=1, run_once=True)
+            with temp_dir() as directory:
+                runner = Runner(directory, cm)
+                runner.random_chaos(
+                    run_timeout=2, enablement_timeout=1, run_once=True)
         mock.assert_called_once_with(runner, 1)
-        s_mock.assert_called_once_with(cm)
 
     def test_list_all_commands(self):
         cmd = Runner.list_all_commands()
