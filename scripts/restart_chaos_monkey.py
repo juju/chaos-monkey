@@ -1,9 +1,5 @@
 from argparse import ArgumentParser
-from subprocess import (
-    CalledProcessError,
-    check_output,
-)
-import sys
+import os
 
 
 def parse_args(argv=None):
@@ -22,15 +18,10 @@ def parse_args(argv=None):
 
 
 def restart_chaos_monkey(args):
-    cmd = ([args.runner_path] + args.cmd_arg.split(' ') +
-           ['--expire-time'] + [args.expire_time] + ['--restart'])
+    cmd = 'python {} {} --expire-time {} --restart &'.format(
+        args.runner_path, args.cmd_arg, args.expire_time)
+    os.system(cmd)
 
-    try:
-        check_output(cmd)
-    except CalledProcessError:
-        sys.stderr.write(
-            'Cloud not restart Chaos Monkey. cmd:{}'.format(args.cmd_arg))
-        sys.exit(-1)
 
 if __name__ == '__main__':
     args = parse_args()

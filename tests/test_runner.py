@@ -629,12 +629,7 @@ class TestRunner(CommonTestBase):
             self.assertIn(item, result)
 
     def test_run_command(self):
-        net = Net()
-        for chaos in net.get_chaos():
-            if chaos.command_str == "deny-state-server":
-                break
-        else:
-            self.fail("'deny-state-server' chaos not found")
+        chaos = self._get_chaos_object(Net(), 'deny-state-server')
         with patch('utility.check_output', autospec=True) as mock:
             with patch(
                     'runner.random.choice', autospec=True, return_value=chaos):
@@ -649,6 +644,26 @@ class TestRunner(CommonTestBase):
             call(['ufw', 'delete', 'allow', 'in', 'to', 'any']),
             call(['ufw', 'delete', 'deny', '37017']),
         ])
+
+    def test_run_command_select_restart_unit(self):
+        chaos = self._get_chaos_object(Kill(), Kill.restart_cmd)
+        with patch('utility.check_output', autospec=True) as mock:
+            with patch(
+                    'runner.random.choice', autospec=True, return_value=chaos):
+                with patch('runner.Init', autospec=True) as ri_mock:
+                    with temp_dir() as directory:
+                        runner = Runner(directory, ChaosMonkey.factory())
+                        runner._run_command(enablement_timeout=0)
+        self.assertEqual(mock.mock_calls, [call(['shutdown', '-r', 'now'])])
+        ri_mock.upstart.assert_called_once_with()
+
+    def _get_chaos_object(self, obj, command_str):
+        for chaos in obj.get_chaos():
+            if chaos.command_str == command_str:
+                break
+        else:
+            self.fail("'{}' chaos not found".format(command_str))
+        return chaos
 
 
 def add_fake_group(chaos_monkey):

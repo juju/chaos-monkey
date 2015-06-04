@@ -49,15 +49,9 @@ class Runner:
         if restart:
             init = Init.upstart()
             init.uninstall()
-            if not os.path.isfile(self.lock_file):
-                sys.stderr.write(
-                    'Lock file does not exist: {}\n'.format(self.lock_file))
-                sys.exit(-1)
-            return
         try:
-            file_flag = ((os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-                         if not restart else os.O_WRONLY)
-            lock_fd = os.open(self.lock_file, file_flag)
+            lock_fd = os.open(self.lock_file,
+                              os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         except OSError as e:
             if e.errno == errno.EEXIST:
                 sys.stderr.write('Lock file already exists: {}\n'.format(
@@ -98,12 +92,16 @@ class Runner:
 
     def _run_command(self, enablement_timeout):
         chaos = random.choice(self.chaos_monkey.chaos)
+        logging.info("{}".format(chaos.description))
         if chaos.command_str == Kill.restart_cmd:
+            self.stop_chaos = True
             init = Init.upstart()
             init.install(
                 cmd_arg=' '.join(sys.argv[1:]), expire_time=self.expire_time)
-        logging.info("{}".format(chaos.description))
         chaos.enable()
+        if chaos.command_str == Kill.restart_cmd:
+            return
+
         sleep(enablement_timeout)
         if chaos.disable:
             chaos.disable()
@@ -117,7 +115,7 @@ class Runner:
                     raise
                 logging.warning('Lock file not found: {}'.format(
                     self.lock_file))
-        logging.info('Chaos monkey stopped')
+        logging.info('Chaos Monkey stopped.')
 
     def filter_commands(self, include_group=None, exclude_group=None,
                         include_command=None, exclude_command=None):
@@ -233,7 +231,7 @@ def parse_args(argv=None):
         help='Run a single command only.', default=False)
     parser.add_argument(
         '-r', '--restart', action='store_true',
-        help='Indicates the run is after a unit restart.', default=False)
+        help='Indicates the run is after a reboot.', default=False)
     parser.add_argument(
         '-ep', '--expire-time', type=float,
         help='Chaos Monkey expire time (UNIX timestamp).', default=None)
@@ -262,7 +260,8 @@ if __name__ == '__main__':
                             dry_run=args.dry_run)
     setup_sig_handlers(runner.sig_handler)
     runner.acquire_lock(args.restart)
-    logging.info('Chaos monkey started in {}'.format(args.path))
+    msg = 'started' if not args.restart else 'restarted after a shutdown'
+    logging.info('Chaos Monkey {} in {}'.format(msg, args.path))
     logging.debug('Dry run is set to {}'.format(args.dry_run))
     try:
         runner.random_chaos(

@@ -1,3 +1,4 @@
+import errno
 import os
 
 
@@ -33,6 +34,8 @@ class Init:
             init_path, init_script_path, restart_script_path, runner_path)
 
     def install(self, cmd_arg, expire_time):
+        cmd_arg = cmd_arg.replace('--restart ', '').replace(
+            '--expire-time ', '')
         with open(self.init_script_path, 'r') as f:
             data = f.read().format(
                 restart_script_path=self.restart_script_path,
@@ -45,4 +48,8 @@ class Init:
             f.write(data)
 
     def uninstall(self):
-        os.remove(self.init_path)
+        try:
+            os.remove(self.init_path)
+        except OSError as e:
+            if e.errno != errno.ENOENT:
+                raise
