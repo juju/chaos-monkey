@@ -104,15 +104,16 @@ class Runner:
         if chaos.disable:
             chaos.disable()
 
-    def cleanup(self):
+    def cleanup(self, restart=False):
         if self.lock_file:
             try:
                 os.unlink(self.lock_file)
             except OSError as e:
                 if e.errno != errno.ENOENT:
                     raise
-                logging.warning('Lock file not found: {}'.format(
-                    self.lock_file))
+                if not restart:
+                    logging.warning('Lock file not found: {}'.format(
+                        self.lock_file))
         logging.info('Chaos Monkey stopped.\n')
 
     def filter_commands(self, include_group=None, exclude_group=None,
@@ -260,6 +261,10 @@ if __name__ == '__main__':
     msg = 'started' if not args.restart else 'restarted after a reboot'
     logging.info('Chaos Monkey {} in {}'.format(msg, args.path))
     logging.debug('Dry run is set to {}'.format(args.dry_run))
+    if args.run_once and args.restart:
+        runner.cleanup(restart=True)
+        sys.exit(0)
+
     runner.acquire_lock(restart=args.restart)
     try:
         runner.random_chaos(
