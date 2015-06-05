@@ -46,12 +46,12 @@ class Runner:
         if not os.path.isdir(self.workspace):
             sys.stderr.write('Not a directory: {}\n'.format(self.workspace))
             sys.exit(-1)
-        if restart:
-            init = Init.upstart()
-            init.uninstall()
+        init = Init.upstart()
+        init.uninstall()
         try:
-            lock_fd = os.open(self.lock_file,
-                              os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            file_flag = ((os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                         if not restart else (os.O_CREAT | os.O_WRONLY))
+            lock_fd = os.open(self.lock_file, file_flag)
         except OSError as e:
             if e.errno == errno.EEXIST:
                 sys.stderr.write('Lock file already exists: {}\n'.format(
@@ -113,7 +113,7 @@ class Runner:
                     raise
                 logging.warning('Lock file not found: {}'.format(
                     self.lock_file))
-        logging.info('Chaos Monkey stopped.')
+        logging.info('Chaos Monkey stopped.\n')
 
     def filter_commands(self, include_group=None, exclude_group=None,
                         include_command=None, exclude_command=None):
@@ -260,7 +260,7 @@ if __name__ == '__main__':
     msg = 'started' if not args.restart else 'restarted after a reboot'
     logging.info('Chaos Monkey {} in {}'.format(msg, args.path))
     logging.debug('Dry run is set to {}'.format(args.dry_run))
-    runner.acquire_lock(args.restart)
+    runner.acquire_lock(restart=args.restart)
     try:
         runner.random_chaos(
             run_timeout=args.total_timeout,

@@ -82,5 +82,6 @@ class TestInit(TestCase):
         result = Init._remove_args(cmd_arg)
         self.assertEqual(result, cmd_arg)
 
+
 def get_chaos_monkey_dir():
     return os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
