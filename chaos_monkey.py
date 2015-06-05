@@ -1,12 +1,7 @@
-import logging
-import random
-from time import sleep
-
 from chaos import (
     kill,
     net
 )
-from utility import NotFound
 
 __metaclass__ = type
 
@@ -90,28 +85,3 @@ class ChaosMonkey:
             if item.command_str == command_str:
                 return item
         return None
-
-    def run_random_chaos(self, timeout=2):
-        random_chaos = random.choice(self.chaos)
-        self._run_command(random_chaos, timeout=timeout)
-
-    def run_chaos(self, group, command_str, timeout=2):
-        command_found = False
-        for chaos in self.chaos:
-            if chaos.group == group and chaos.command_str == command_str:
-                command_found = True
-                self._run_command(chaos, timeout=timeout)
-        if not command_found:
-            raise NotFound("Command not found: group: %s command_str:%s" % (
-                group, command_str))
-
-    def _run_command(self, chaos, timeout=2):
-        logging.info("{}".format(chaos.description))
-        chaos.enable()
-        sleep(timeout)
-        if chaos.disable:
-            chaos.disable()
-
-    def shutdown(self):
-        for obj in self.factory_obj:
-            obj.shutdown()

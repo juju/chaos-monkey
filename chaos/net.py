@@ -119,7 +119,3 @@ class Net(ChaosMonkeyBase):
                 allow_in_to_any,
                 ),
         ]
-
-    def shutdown(self):
-        # TODO(gz): Delete this? Each Chaos object cleans up firewall rules.
-        run_shell_command("ufw --force reset")

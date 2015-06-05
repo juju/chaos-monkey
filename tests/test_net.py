@@ -75,12 +75,6 @@ class TestNet(CommonTestBase):
         for c in chaos:
             self.assertEqual('net', c.group)
 
-    def test_shutdown(self):
-        net = Net()
-        with patch('utility.check_output', autospec=True) as mock:
-            net.shutdown()
-        mock.assert_called_once_with(['ufw', '--force', 'reset'])
-
     def get_net_chaos(self, cmd):
         net = Net()
         for chaos in net.get_chaos():
