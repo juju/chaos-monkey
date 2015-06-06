@@ -115,10 +115,6 @@ class Runner:
         if chaos.disable:
             chaos.disable()
 
-    def _log_cmd(self, *args):
-        logger = logging.getLogger(self.cmd_log_name)
-        logger.info(StructuredMessage(*args))
-
     def cleanup(self, restart=False):
         if self.lock_file:
             try:
