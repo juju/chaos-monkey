@@ -5,12 +5,14 @@ from subprocess import CalledProcessError
 from tempfile import NamedTemporaryFile
 
 from mock import patch
+from yaml import dump
 
 from common_test_base import CommonTestBase
 from utility import (
     ensure_dir,
     run_shell_command,
     setup_logging,
+    StructuredMessage,
     temp_dir,
 )
 
@@ -61,6 +63,21 @@ class TestUtility(CommonTestBase):
             type(handlers[0]), [RotatingFileHandler, logging.StreamHandler])
         self.assertIn(
             type(handlers[1]), [RotatingFileHandler, logging.StreamHandler])
+
+    def test_setup_logging_cmd_logger(self):
+        with NamedTemporaryFile() as temp_file:
+            setup_logging(temp_file.name, log_count=1, log_level=logging.INFO,
+                          name='cmd_log', add_stream=False,
+                          disable_formatter=True)
+            logger = logging.getLogger('cmd_log')
+            logger.info(StructuredMessage("deny-all", "3"))
+            data = temp_file.read()
+        self.assertEqual(logger.level, logging.INFO)
+        self.assertEqual(logger.name, 'cmd_log')
+        handlers = logger.handlers
+        self.assertIn(type(handlers[0]), [RotatingFileHandler])
+        expected_data = dump([['deny-all', "3"]])
+        self.assertEqual(data, expected_data)
 
     def test_setup_logging_formatter(self):
         log_count = 1
