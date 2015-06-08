@@ -41,7 +41,7 @@ class Runner:
         log_dir_path = os.path.join(workspace, 'log')
         ensure_dir(log_dir_path)
         log_file = os.path.join(log_dir_path, 'results.log')
-        cmd_log_file = os.path.join(log_dir_path, 'cmd.log')
+        cmd_log_file = os.path.join(log_dir_path, 'chaos_run_list.log')
         cmd_log_name = 'cmd_log'
         setup_logging(log_path=log_file, log_count=log_count)
         setup_logging(
