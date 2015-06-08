@@ -18,12 +18,14 @@ from utility import (
     NotFound,
     setup_logging,
     split_arg_string,
+    StructuredMessage,
 )
 from utils.init import Init
 
 
 class Runner:
-    def __init__(self, workspace, chaos_monkey, log_count=1, dry_run=False):
+    def __init__(self, workspace, chaos_monkey, log_count=1, dry_run=False,
+                 cmd_log_name=None):
         self.workspace = workspace
         self.log_count = log_count
         self.dry_run = dry_run
@@ -32,15 +34,21 @@ class Runner:
         self.lock_file = '{}/{}'.format(self.workspace, 'chaos_runner.lock')
         self.chaos_monkey = chaos_monkey
         self.expire_time = None
+        self.cmd_log_name = cmd_log_name
 
     @classmethod
     def factory(cls, workspace, log_count=1, dry_run=False):
         log_dir_path = os.path.join(workspace, 'log')
         ensure_dir(log_dir_path)
         log_file = os.path.join(log_dir_path, 'results.log')
+        cmd_log_file = os.path.join(log_dir_path, 'chaos_run_list.log')
+        cmd_log_name = 'cmd_log'
         setup_logging(log_path=log_file, log_count=log_count)
+        setup_logging(
+            log_path=cmd_log_file, log_count=log_count,  name=cmd_log_name,
+            add_stream=False, disable_formatter=True)
         chaos_monkey = ChaosMonkey.factory()
-        return cls(workspace, chaos_monkey, log_count, dry_run)
+        return cls(workspace, chaos_monkey, log_count, dry_run, cmd_log_name)
 
     def acquire_lock(self, restart=False):
         if not os.path.isdir(self.workspace):
@@ -91,6 +99,9 @@ class Runner:
     def _run_command(self, enablement_timeout):
         chaos = random.choice(self.chaos_monkey.chaos)
         logging.info("{}".format(chaos.description))
+        cmd_logger = logging.getLogger(self.cmd_log_name)
+        cmd_logger.info(StructuredMessage(
+            chaos.command_str, enablement_timeout))
         if chaos.command_str == Kill.restart_cmd:
             self.stop_chaos = True
             init = Init.upstart()

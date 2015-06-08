@@ -46,7 +46,13 @@ class TestRunner(CommonTestBase):
         self.assertEqual(call_params[0],
                          expected_log_dir_path)
         expected_log_file = os.path.join(expected_log_dir_path, 'results.log')
-        sl_mock.assert_called_with(log_path=expected_log_file, log_count=1)
+        expected_cmd_file = os.path.join(expected_log_dir_path,
+                                         'chaos_run_list.log')
+        self.assertEqual(sl_mock.mock_calls, [
+            call(log_path=expected_log_file, log_count=1),
+            call(log_path=expected_cmd_file, log_count=1, name='cmd_log',
+                 add_stream=False, disable_formatter=True)
+        ])
         cm_mock.assert_called_with()
         self.assertIsInstance(runner, Runner)
 

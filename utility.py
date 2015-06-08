@@ -12,6 +12,7 @@ from subprocess import (
 from tempfile import mkdtemp
 
 from contextlib import contextmanager
+from yaml import dump
 
 
 def ensure_dir(path):
@@ -34,19 +35,22 @@ def run_shell_command(cmd, quiet_mode=False):
     return output
 
 
-def setup_logging(log_path, log_count, log_level=logging.INFO):
+def setup_logging(log_path, log_count, log_level=logging.INFO, name=None,
+                  add_stream=True, disable_formatter=False):
     """Install log handlers to output to file and stream."""
-    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s',
-                                  '%Y-%m-%d %H:%M:%S')
-    root_logger = logging.getLogger()
+    formatter = None if disable_formatter else logging.Formatter(
+        '%(asctime)s %(levelname)s %(message)s', '%Y-%m-%d %H:%M:%S')
+    logger = logging.getLogger(name)
+    logger.propagate = 0
     rf_handler = RotatingFileHandler(
         log_path, maxBytes=1024 * 1024 * 512, backupCount=log_count)
     rf_handler.setFormatter(formatter)
-    root_logger.addHandler(rf_handler)
-    s_handler = logging.StreamHandler()
-    s_handler.setFormatter(formatter)
-    root_logger.addHandler(s_handler)
-    root_logger.setLevel(log_level)
+    logger.addHandler(rf_handler)
+    if add_stream:
+        s_handler = logging.StreamHandler()
+        s_handler.setFormatter(formatter)
+        logger.addHandler(s_handler)
+    logger.setLevel(log_level)
 
 
 def split_arg_string(arg_string):
@@ -72,3 +76,12 @@ class NotFound(Exception):
 class BadRequest(Exception):
     """Incorrectly formatted  request"""
     error_code = 400
+
+
+class StructuredMessage:
+    def __init__(self, *args):
+        self.args = args
+
+    def __str__(self):
+        # -1 to remove the newline
+        return dump([list(self.args)])[:-1]
