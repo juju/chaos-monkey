@@ -4,9 +4,11 @@ import os
 import signal
 import subprocess
 from StringIO import StringIO
+from tempfile import NamedTemporaryFile
 from time import time
 
 from mock import patch, call
+import yaml
 
 from chaos.kill import Kill
 from chaos_monkey import ChaosMonkey
@@ -530,7 +532,8 @@ class TestRunner(CommonTestBase):
                             total_timeout=10, log_count=2, include_group=None,
                             exclude_group=None, include_command=None,
                             exclude_command=None, dry_run=False,
-                            run_once=False, restart=False, expire_time=None))
+                            run_once=False, restart=False, expire_time=None,
+                            replay=None))
 
     def test_parse_args_non_default_values(self):
         args = parse_args(['path',
@@ -543,14 +546,16 @@ class TestRunner(CommonTestBase):
                            '--exclude-command', 'deny-incoming',
                            '--dry-run',
                            '--restart',
-                           '--expire-time', '111.11'])
+                           '--expire-time', '111.11',
+                           '--replay', '/path/to/foo'])
         self.assertEqual(
             args, Namespace(path='path', enablement_timeout=30,
                             total_timeout=600, log_count=4,
                             include_group='net', exclude_group=Kill.group,
                             include_command='deny-all',
                             exclude_command='deny-incoming', dry_run=True,
-                            run_once=False, restart=True, expire_time=111.11))
+                            run_once=False, restart=True, expire_time=111.11,
+                            replay='/path/to/foo'))
 
     def test_parse_args_non_default_values_set_run_once(self):
         args = parse_args(['path',
@@ -568,7 +573,8 @@ class TestRunner(CommonTestBase):
                             include_group='net', exclude_group=Kill.group,
                             include_command='deny-all',
                             exclude_command='deny-incoming', dry_run=True,
-                            run_once=True, restart=False, expire_time=None))
+                            run_once=True, restart=False, expire_time=None,
+                            replay=None))
 
     def test_parse_args_error_enablement_greater_than_total_timeout(self):
         with parse_error(self) as stderr:
@@ -636,14 +642,7 @@ class TestRunner(CommonTestBase):
                 with temp_dir() as directory:
                     runner = Runner(directory, ChaosMonkey.factory())
                     runner._run_command(enablement_timeout=0)
-        self.assertEqual(mock.mock_calls, [
-            call(['ufw', 'deny', '37017']),
-            call(['ufw', 'allow', 'in', 'to', 'any']),
-            call(['ufw', '--force', 'enable']),
-            call(['ufw', 'disable']),
-            call(['ufw', 'delete', 'allow', 'in', 'to', 'any']),
-            call(['ufw', 'delete', 'deny', '37017']),
-        ])
+        self.assertEqual(mock.mock_calls, self._deny_port_call_list())
 
     def test_run_command_select_restart_unit(self):
         chaos = self._get_chaos_object(Kill(), Kill.restart_cmd)
@@ -657,6 +656,80 @@ class TestRunner(CommonTestBase):
         self.assertEqual(mock.mock_calls, [call(['shutdown', '-r', 'now'])])
         ri_mock.upstart.assert_called_once_with()
 
+    def test_replay_commands(self):
+        with patch('utility.check_output', autospec=True) as mock:
+            with temp_dir() as directory:
+                runner = Runner(directory, ChaosMonkey.factory())
+                with NamedTemporaryFile() as temp_file:
+                    self._write_command_list_to_file(temp_file)
+                    args = Namespace(replay=temp_file.name, restart=False)
+                    runner.replay_commands(args)
+        expected = self._deny_port_call_list()
+        expected.extend(self._deny_port_call_list('17017'))
+        self.assertEqual(mock.mock_calls, expected)
+
+    def test_replay_commands_with_restart_command(self):
+        commands = "- [restart-unit, 1]\n- [deny-api-server, 1]\n"
+        with patch('utility.check_output', autospec=True) as mock:
+            with patch('runner.Init.install'):
+                with temp_dir() as directory:
+                    runner = Runner(directory, ChaosMonkey.factory())
+                    with NamedTemporaryFile() as temp_file:
+                        self._write_command_list_to_file(
+                            temp_file, data=commands)
+                        args = Namespace(replay=temp_file.name, restart=False)
+                        runner.replay_commands(args)
+                        # Verify a temporary file is created because there
+                        # is a restart-unit command in the list.
+                        self.assertIs(os.path.isfile(
+                            temp_file.name + runner.replay_filename_ext), True)
+                        args = Namespace(replay=temp_file.name, restart=True)
+                        file_content = runner.get_command_list(args)
+                        # Verify the temporary files is deleted.
+                        self.assertIsNot(os.path.isfile(
+                            temp_file.name + runner.replay_filename_ext), True)
+        self.assertEqual(mock.mock_calls, [call(['shutdown', '-r', 'now'])])
+        self.assertEqual(file_content, [yaml.load(commands)[1]])
+
+    def test_replay_commands_after_reboot(self):
+        with patch('utility.check_output', autospec=True) as mock:
+            with temp_dir() as directory:
+                runner = Runner(directory, ChaosMonkey.factory())
+                temp_file = NamedTemporaryFile(
+                    suffix=runner.replay_filename_ext, delete=False)
+                self._write_command_list_to_file(temp_file)
+                args = Namespace(
+                    replay=temp_file.name.split('.')[0], restart=True)
+                runner.replay_commands(args)
+                # Verify replay_commands() has deleted the temp file.
+                self.assertIsNot(os.path.isfile(temp_file.name), True)
+        expected = self._deny_port_call_list()
+        expected.extend(self._deny_port_call_list('17017'))
+        self.assertEqual(mock.mock_calls, expected)
+
+    def test_get_command_list(self):
+        with temp_dir() as directory:
+            runner = Runner(directory, ChaosMonkey.factory())
+            with NamedTemporaryFile() as temp_file:
+                self._write_command_list_to_file(temp_file)
+                args = Namespace(replay=temp_file.name, restart=False)
+                commands = runner.get_command_list(args)
+        expected = [['deny-state-server', 1], ['deny-api-server', 1]]
+        self.assertItemsEqual(commands, expected)
+
+    def test_save_replay_command_list(self):
+        commands = [['deny-state-server', 1], ['deny-api-server', 1]]
+        with temp_dir() as directory:
+            runner = Runner(directory, ChaosMonkey.factory())
+            with NamedTemporaryFile(
+                    suffix=runner.replay_filename_ext) as temp_file:
+                args = Namespace(replay=temp_file.name.split('.')[0],
+                                 restart=False)
+                runner.save_command_list(commands, args)
+                file_content = temp_file.read()
+        expected = yaml.dump(commands)
+        self.assertItemsEqual(file_content, expected)
+
     def _get_chaos_object(self, obj, command_str):
         for chaos in obj.get_chaos():
             if chaos.command_str == command_str:
@@ -664,6 +737,22 @@ class TestRunner(CommonTestBase):
         else:
             self.fail("'{}' chaos not found".format(command_str))
         return chaos
+
+    def _write_command_list_to_file(self, fd, data=None):
+        data = ("- [deny-state-server, 1]\n- [deny-api-server, 1]\n"
+                if not data else data)
+        fd.write(data)
+        fd.flush()
+        return data
+
+    def _deny_port_call_list(self, port='37017'):
+        return [
+            call(['ufw', 'deny', port]),
+            call(['ufw', 'allow', 'in', 'to', 'any']),
+            call(['ufw', '--force', 'enable']),
+            call(['ufw', 'disable']),
+            call(['ufw', 'delete', 'allow', 'in', 'to', 'any']),
+            call(['ufw', 'delete', 'deny', port])]
 
 
 def add_fake_group(chaos_monkey):

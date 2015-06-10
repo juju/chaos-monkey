@@ -10,6 +10,8 @@ from time import (
     sleep
 )
 
+import yaml
+
 from chaos.kill import Kill
 from chaos_monkey import ChaosMonkey
 from utility import (
@@ -35,6 +37,7 @@ class Runner:
         self.chaos_monkey = chaos_monkey
         self.expire_time = None
         self.cmd_log_name = cmd_log_name
+        self.replay_filename_ext = '.part'
 
     @classmethod
     def factory(cls, workspace, log_count=1, dry_run=False):
@@ -131,6 +134,7 @@ class Runner:
                         include_command=None, exclude_command=None):
         all_groups = ChaosMonkey.get_all_groups()
         all_commands = ChaosMonkey.get_all_commands()
+        self.chaos_monkey.reset_command_selection()
 
         # If any groups and any commands are not included, assume the intent
         #  is to include all groups and all commands.
@@ -150,6 +154,42 @@ class Runner:
             exclude_command = self._validate(
                 exclude_command, all_commands)
             self.chaos_monkey.exclude_command(exclude_command)
+
+    def replay_commands(self, args):
+        """Replay Chaos Monkey commands from a file."""
+        commands = self.get_command_list(args)
+        while commands:
+            command = commands.pop()
+            command_str = command[0]
+            enablement_timeout = command[1]
+            if command_str == Kill.restart_cmd and commands:
+                # Save the commands to a temporary file before a reboot.
+                self.save_command_list(commands, args)
+            self.random_chaos(
+                run_timeout=enablement_timeout,
+                enablement_timeout=enablement_timeout,
+                include_command=command_str)
+            if command_str == Kill.restart_cmd:
+                break
+
+    def get_command_list(self, args):
+        """Get the command list from a file."""
+        file_path = (args.replay + self.replay_filename_ext
+                     if args.restart else args.replay)
+        with open(file_path) as f:
+            commands = yaml.load(f.read())
+        commands.reverse()
+        # If it is a restart, remove the temporary file.
+        if args.restart:
+            os.remove(file_path)
+        return commands
+
+    def save_command_list(self, commands, args):
+        """Before a shutdown and restart request, this method is called
+        to save the command list to a temporary file."""
+        file_path = args.replay + self.replay_filename_ext
+        with open(file_path, 'w') as f:
+            f.write(yaml.dump(commands))
 
     @staticmethod
     def _validate(sub_string, all_list):
@@ -245,6 +285,9 @@ def parse_args(argv=None):
     parser.add_argument(
         '-ep', '--expire-time', type=float,
         help='Chaos Monkey expire time (UNIX timestamp).', default=None)
+    parser.add_argument(
+        '-rp', '--replay', metavar='FULL-FILE-PATH',
+        help='Replay Chaos Monkey commands from a file.', default=None)
     args = parser.parse_args(argv)
 
     if args.run_once and args.total_timeout:
@@ -262,7 +305,11 @@ def parse_args(argv=None):
     if args.enablement_timeout < 0:
         parser.error("Invalid enablement-timeout value: timeout must be "
                      "zero or greater.")
+    if args.replay and not os.path.isabs(args.replay):
+            parser.error("Please provide an absolute file path to the replay "
+                         "argument: {}".format(args.replay))
     return args
+
 
 if __name__ == '__main__':
     args = parse_args()
@@ -278,15 +325,19 @@ if __name__ == '__main__':
 
     runner.acquire_lock(restart=args.restart)
     try:
-        runner.random_chaos(
-            run_timeout=args.total_timeout,
-            enablement_timeout=args.enablement_timeout,
-            include_group=args.include_group,
-            exclude_group=args.exclude_group,
-            include_command=args.include_command,
-            exclude_command=args.exclude_command,
-            run_once=args.run_once,
-            expire_time=args.expire_time)
+        if args.replay:
+            logging.info('Replaying commands from {}'.format(args.replay))
+            runner.replay_commands(args=args)
+        else:
+            runner.random_chaos(
+                run_timeout=args.total_timeout,
+                enablement_timeout=args.enablement_timeout,
+                include_group=args.include_group,
+                exclude_group=args.exclude_group,
+                include_command=args.include_command,
+                exclude_command=args.exclude_command,
+                run_once=args.run_once,
+                expire_time=args.expire_time)
     except Exception as e:
         logging.error('{} ({})'.format(e, type(e).__name__))
         sys.exit(1)
