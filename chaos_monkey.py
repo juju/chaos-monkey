@@ -18,14 +18,6 @@ class ChaosMonkey:
         all_chaos, factory_obj = ChaosMonkey.get_all_chaos()
         return cls([], factory_obj)
 
-    @property
-    def command_tag(self):
-        return ":CHAOS_CMD:"
-
-    @property
-    def description_tag(self):
-        return ":CHAOS_DSCR:"
-
     @staticmethod
     def get_all_chaos():
         all_chaos = []
@@ -85,3 +77,6 @@ class ChaosMonkey:
             if item.command_str == command_str:
                 return item
         return None
+
+    def reset_command_selection(self):
+        self.chaos = []
