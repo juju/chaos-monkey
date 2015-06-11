@@ -1,3 +1,5 @@
+# Copyright 2015 Canonical Ltd.
+# Licensed under the AGPLv3, see LICENCE file for details.
 from __future__ import print_function
 
 import errno
@@ -16,6 +18,7 @@ from yaml import dump
 
 
 def ensure_dir(path):
+    """Ensure a directory exists. If it doesn't exist, it will create it."""
     try:
         os.mkdir(path)
     except OSError as e:
@@ -24,6 +27,8 @@ def ensure_dir(path):
 
 
 def run_shell_command(cmd, quiet_mode=False):
+    """Run a shell command. If quiet_mode is set to true, it won't generate
+    a CalledProcessError exception."""
     shell_cmd = cmd.split(' ') if type(cmd) is str else cmd
     output = None
     try:
@@ -54,6 +59,7 @@ def setup_logging(log_path, log_count, log_level=logging.INFO, name=None,
 
 
 def split_arg_string(arg_string):
+    """Split string using comma as delimiter."""
     if not arg_string:
         return []
     return arg_string.split(',') if ',' in arg_string else [arg_string]
@@ -61,6 +67,7 @@ def split_arg_string(arg_string):
 
 @contextmanager
 def temp_dir():
+    """Create a temporary directory."""
     dirname = mkdtemp()
     try:
         yield dirname
@@ -79,6 +86,8 @@ class BadRequest(Exception):
 
 
 class StructuredMessage:
+    """Create YAML structured message."""
+
     def __init__(self, *args):
         self.args = args
 

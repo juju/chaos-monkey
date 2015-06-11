@@ -1,3 +1,5 @@
+# Copyright 2015 Canonical Ltd.
+# Licensed under the AGPLv3, see LICENCE file for details.
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 import errno
 import logging
@@ -26,6 +28,8 @@ from utils.init import Init
 
 
 class Runner:
+    """Chaos Monkey runner."""
+
     def __init__(self, workspace, chaos_monkey, log_count=1, dry_run=False,
                  cmd_log_name=None):
         self.workspace = workspace
@@ -54,6 +58,7 @@ class Runner:
         return cls(workspace, chaos_monkey, log_count, dry_run, cmd_log_name)
 
     def acquire_lock(self, restart=False):
+        """Acquire a lock before start running Chaos Monkey."""
         if not os.path.isdir(self.workspace):
             sys.stderr.write('Not a directory: {}\n'.format(self.workspace))
             sys.exit(-1)
@@ -87,7 +92,27 @@ class Runner:
     def random_chaos(self, run_timeout, enablement_timeout, include_group=None,
                      exclude_group=None, include_command=None,
                      exclude_command=None, run_once=False, expire_time=None):
-        """Runs a random chaos monkey."""
+        """
+        Run a random command from the selected commands."
+        :param run_timeout: Total timeout for running Chaos Monkey in seconds.
+        :param enablement_timeout: Timeout to wait between enabling and
+        disabling a command.
+        :param include_group: Select commands from only a specified group or
+        set of groups. Example: if it is set to "net", it only selects commands
+        in net group. Comma can be used to specify multiple groups.
+        :param exclude_group: Exclude a group or set of groups from selected
+        commands. Example, if it is set to "net", it excludes all commands
+        in net group.Comma can be used to specify multiple groups.
+        :param include_command: Select commands from only a specified command
+        or set of commands. Example: if it is set to "deny-all,deny-outgoing",
+        it selects the specified commands only.
+        :param exclude_command: Exclude a command or set of commands from
+         selected commands.
+        :param run_once: Run a single Chaos Monkey command.
+        :param expire_time: Chaos Monkey run expire time in UNIX timestamp. If
+        this is set, "run_timeout" will be ignored.
+        :return: None
+        """
         self.filter_commands(
             include_group=include_group, exclude_group=exclude_group,
             include_command=include_command, exclude_command=exclude_command)
@@ -100,6 +125,7 @@ class Runner:
                 break
 
     def _run_command(self, enablement_timeout):
+        """Randomly selected a Chaos Monkey command and executes it,"""
         chaos = random.choice(self.chaos_monkey.chaos)
         logging.info("{}".format(chaos.description))
         cmd_logger = logging.getLogger(self.cmd_log_name)
@@ -119,6 +145,7 @@ class Runner:
             chaos.disable()
 
     def cleanup(self, restart=False):
+        """Called at the end of Chaos Monkey run to perform a cleanup."""
         if self.lock_file:
             try:
                 os.unlink(self.lock_file)
@@ -132,6 +159,10 @@ class Runner:
 
     def filter_commands(self, include_group=None, exclude_group=None,
                         include_command=None, exclude_command=None):
+        """Perform command selection and exclusion.
+
+        See random_chaos() for the description of the parameters.
+        """
         all_groups = ChaosMonkey.get_all_groups()
         all_commands = ChaosMonkey.get_all_commands()
         self.chaos_monkey.reset_command_selection()
@@ -156,15 +187,27 @@ class Runner:
             self.chaos_monkey.exclude_command(exclude_command)
 
     def replay_commands(self, args):
-        """Replay Chaos Monkey commands from a file."""
-        commands = self.get_command_list(args)
+        """Replay Chaos Monkey commands from a file. It assumes a valid YAML
+        formatted data.
+
+        Example of input file:
+        - [deny-incoming, 2]
+        - [deny-all, 2]
+
+        The above input file will execute the following:
+        + Run "deny-incoming" command.
+        + Wait 2 seconds.
+        + Run "deny-all" command.
+        + Wait 2 seconds.
+        """
+        commands = self._get_command_list(args)
         while commands:
             command = commands.pop()
             command_str = command[0]
             enablement_timeout = command[1]
             if command_str == Kill.restart_cmd and commands:
                 # Save the commands to a temporary file before a reboot.
-                self.save_command_list(commands, args)
+                self._save_command_list(commands, args)
             self.random_chaos(
                 run_timeout=enablement_timeout,
                 enablement_timeout=enablement_timeout,
@@ -172,8 +215,8 @@ class Runner:
             if command_str == Kill.restart_cmd:
                 break
 
-    def get_command_list(self, args):
-        """Get the command list from a file."""
+    def _get_command_list(self, args):
+        """Get command list from a file."""
         file_path = (args.replay + self.replay_filename_ext
                      if args.restart else args.replay)
         with open(file_path) as f:
@@ -184,7 +227,7 @@ class Runner:
             os.remove(file_path)
         return commands
 
-    def save_command_list(self, commands, args):
+    def _save_command_list(self, commands, args):
         """Before a shutdown and restart request, this method is called
         to save the command list to a temporary file."""
         file_path = args.replay + self.replay_filename_ext
@@ -193,6 +236,7 @@ class Runner:
 
     @staticmethod
     def _validate(sub_string, all_list):
+        """Validate input commands."""
         sub_list = split_arg_string(sub_string)
         for item in sub_list:
             if item not in all_list:
@@ -201,7 +245,7 @@ class Runner:
         return sub_list
 
     def sig_handler(self, sig_num, frame):
-        """Set the stop_chaos flag, to request a safe exit."""
+        """Set the stop_chaos flag to request a safe exit."""
         logging.info('Caught signal {}: Waiting for graceful exit.\n'.format(
                      sig_num))
         logging.debug('Flagging stop for runner in workspace: {}'.format(
@@ -211,6 +255,7 @@ class Runner:
 
     @staticmethod
     def list_all_commands():
+        """List all available commands."""
         all_chaos, _ = ChaosMonkey.get_all_chaos()
         all_groups = ChaosMonkey.get_all_groups()
         commands = {}
@@ -221,11 +266,13 @@ class Runner:
 
 
 def setup_sig_handlers(handler):
+    """Set function handler for SIGTERM and SIGINT signals."""
     signal.signal(signal.SIGTERM, handler)
     signal.signal(signal.SIGINT, handler)
 
 
 def display_all_commands():
+    """Display all available commands in formatted string."""
     commands = Runner.list_all_commands()
     groups = commands.keys()
     cmd_str = 'GROUP:  a comma-separated list of group names.\n'
@@ -240,6 +287,7 @@ def display_all_commands():
 
 
 def parse_args(argv=None):
+    """Parse command line argument."""
     commands = display_all_commands()
     parser = ArgumentParser(
         description="Run Chaos Monkey.",  usage="[OPTIONS] path",

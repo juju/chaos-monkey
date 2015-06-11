@@ -1,3 +1,5 @@
+# Copyright 2015 Canonical Ltd.
+# Licensed under the AGPLv3, see LICENCE file for details.
 from chaos import (
     kill,
     net
@@ -20,6 +22,7 @@ class ChaosMonkey:
 
     @staticmethod
     def get_all_chaos():
+        """Get all Chaos Monkey available commands."""
         all_chaos = []
         all_factory_obj = []
         factories = [net.Net.factory, kill.Kill.factory]
@@ -30,6 +33,7 @@ class ChaosMonkey:
         return all_chaos, all_factory_obj
 
     def include_group(self, groups):
+        """Select the specified groups from all available groups."""
         if not groups:
             return
         all_chaos, _ = ChaosMonkey.get_all_chaos()
@@ -39,26 +43,31 @@ class ChaosMonkey:
         self.chaos = self.get_groups(groups, all_chaos)
 
     def exclude_group(self, groups):
+        """Exclude the specified groups from the selected groups."""
         excluded_groups = self.get_groups(groups, self.chaos)
         for group in excluded_groups:
             self.chaos.remove(group)
 
     @staticmethod
     def get_all_groups():
+        """Return all available groups."""
         return list(set(c.group for c in ChaosMonkey.get_all_chaos()[0]))
 
     @staticmethod
     def get_all_commands():
+        """Return all available command."""
         return [c.command_str for c in ChaosMonkey.get_all_chaos()[0]]
 
     @staticmethod
     def get_groups(groups, chaos):
+        """Return selected group from available groups."""
         ret_groups = []
         for group in groups:
             ret_groups.extend([c for c in chaos if c.group == group])
         return ret_groups
 
     def include_command(self, commands):
+        """Select the specified commands from all available commands."""
         all_chaos, _ = ChaosMonkey.get_all_chaos()
         included_commands = [x for x in all_chaos if x.command_str in commands]
         for cmd in included_commands:
@@ -66,6 +75,7 @@ class ChaosMonkey:
                 self.chaos.extend(included_commands)
 
     def exclude_command(self, commands):
+        """Exclude the specified commands from the selected commands."""
         excluded_commands = (
             [x for x in self.chaos if x.command_str in commands])
         for cmd in excluded_commands:
@@ -73,6 +83,7 @@ class ChaosMonkey:
 
     @staticmethod
     def _find_command(chaos, command_str):
+        """Find a chaos by command string."""
         for item in chaos:
             if item.command_str == command_str:
                 return item

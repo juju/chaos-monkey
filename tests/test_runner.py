@@ -1,3 +1,5 @@
+# Copyright 2015 Canonical Ltd.
+# Licensed under the AGPLv3, see LICENCE file for details.
 from argparse import Namespace
 from contextlib import contextmanager
 import os
@@ -154,7 +156,7 @@ class TestRunner(CommonTestBase):
         with patch('utility.check_output', autospec=True):
             with patch('runner.Runner._run_command', autospec=True) as cm_mock:
                 with temp_dir() as directory:
-                    runner = Runner.factory(directory, ChaosMonkey.factory())
+                    runner = Runner(directory, ChaosMonkey.factory())
                     runner.random_chaos(run_timeout=1, enablement_timeout=1)
         cm_mock.assert_called_with(runner, 1)
 
@@ -684,7 +686,7 @@ class TestRunner(CommonTestBase):
                         self.assertIs(os.path.isfile(
                             temp_file.name + runner.replay_filename_ext), True)
                         args = Namespace(replay=temp_file.name, restart=True)
-                        file_content = runner.get_command_list(args)
+                        file_content = runner._get_command_list(args)
                         # Verify the temporary files is deleted.
                         self.assertIsNot(os.path.isfile(
                             temp_file.name + runner.replay_filename_ext), True)
@@ -713,7 +715,7 @@ class TestRunner(CommonTestBase):
             with NamedTemporaryFile() as temp_file:
                 self._write_command_list_to_file(temp_file)
                 args = Namespace(replay=temp_file.name, restart=False)
-                commands = runner.get_command_list(args)
+                commands = runner._get_command_list(args)
         expected = [['deny-state-server', 1], ['deny-api-server', 1]]
         self.assertItemsEqual(commands, expected)
 
@@ -725,7 +727,7 @@ class TestRunner(CommonTestBase):
                     suffix=runner.replay_filename_ext) as temp_file:
                 args = Namespace(replay=temp_file.name.split('.')[0],
                                  restart=False)
-                runner.save_command_list(commands, args)
+                runner._save_command_list(commands, args)
                 file_content = temp_file.read()
         expected = yaml.dump(commands)
         self.assertItemsEqual(file_content, expected)

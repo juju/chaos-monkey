@@ -1,3 +1,5 @@
+# Copyright 2015 Canonical Ltd.
+# Licensed under the AGPLv3, see LICENCE file for details.
 import abc
 
 __metaclass__ = type
@@ -11,6 +13,8 @@ class ChaosMonkeyBase:
 
     @abc.abstractmethod
     def get_chaos(self):
+        """This method should be implement by each chaos and return a Chaos
+        object."""
         raise NotImplemented
 
 
