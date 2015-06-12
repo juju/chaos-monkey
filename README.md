@@ -1,1 +1,4 @@
-Code repository for juju-chaos-monkey.
+Chaos Monkey
+============
+
+Code repository for Chaos Monkey.
