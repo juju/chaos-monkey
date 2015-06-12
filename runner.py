@@ -246,7 +246,7 @@ class Runner:
         return sub_list
 
     def sig_handler(self, sig_num, frame):
-        """Set signal handler functions for SIGTERM and SIGINT."""
+        """Set the graceful exit flag."""
         logging.info('Caught signal {}: Waiting for graceful exit.\n'.format(
                      sig_num))
         logging.debug('Flagging stop for runner in workspace: {}'.format(
