@@ -8,7 +8,7 @@ __metaclass__ = type
 
 
 class Init:
-    """Generates Upstart init script."""
+    """Generate Upstart init script."""
 
     def __init__(self, init_path, init_script_path, restart_script_path,
                  runner_path):
@@ -37,7 +37,7 @@ class Init:
             init_path, init_script_path, restart_script_path, runner_path)
 
     def install(self, cmd_arg, expire_time):
-        """Install Upstart script in /etc/init directory."""
+        """Install an Upstart script in the /etc/init directory."""
         cmd_arg = Init._remove_args(cmd_arg=cmd_arg)
         with open(self.init_script_path, 'r') as f:
             data = f.read().format(

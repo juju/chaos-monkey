@@ -16,8 +16,7 @@ __metaclass__ = type
 
 
 class Kill(ChaosMonkeyBase):
-    """Kill generates chaos actions that kill processes including shutting down
-     a machine and restarting."""
+    """Kill processes including shutting down a machine and restarting."""
 
     jujud_cmd = 'kill-jujud'
     mongod_cmd = 'kill-mongod'
@@ -32,15 +31,17 @@ class Kill(ChaosMonkeyBase):
         return cls()
 
     def get_pids(self, process):
-        """Return list of process IDs."""
+        """Return a list of process IDs."""
         pids = run_shell_command('pidof ' + process, quiet_mode=True)
         if not pids:
             return None
         return pids.strip().split(' ')
 
     def kill_jujud(self, quiet_mode=True):
-        """Kill jujud process. If quite_mode is set true, it generates an
-        exception in case of errors."""
+        """Kill a jujud process.
+
+        :param quiet_mode: When False, generates an exception on error.
+        """
         pids = self.get_pids('jujud')
         if not pids:
             logging.error("Jujud process ID not found")
@@ -50,8 +51,10 @@ class Kill(ChaosMonkeyBase):
         run_shell_command('kill -s SIGKILL ' + pids[0])
 
     def kill_mongodb(self, quiet_mode=True):
-        """Kill mongodb process. If quite_mode is set true, it generates an
-        exception in case of errors."""
+        """Kill mongod process.
+
+        :param quiet_mode: When False, generates an exception on error.
+        """
         pids = self.get_pids('mongod')
         if not pids:
             logging.error("MongoDB process ID not found")
@@ -61,7 +64,10 @@ class Kill(ChaosMonkeyBase):
         run_shell_command('kill -s SIGKILL ' + pids[0])
 
     def restart_unit(self, quiet_mode=False):
-        """Bring the system down and request a restart.."""
+        """Reboot the unit at the operating system level.
+
+        :param quiet_mode: When False, generates an exception on error.
+        """
         try:
             run_shell_command('shutdown -r now')
         except CalledProcessError:

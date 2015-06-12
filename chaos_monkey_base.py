@@ -13,8 +13,10 @@ class ChaosMonkeyBase:
 
     @abc.abstractmethod
     def get_chaos(self):
-        """This method should be implement by each chaos and return a Chaos
-        object."""
+        """Overridden by derived class and return Chaos objects.
+
+        :return: List of Chaos.
+        """
         raise NotImplemented
 
 

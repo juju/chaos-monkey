@@ -58,7 +58,7 @@ class Runner:
         return cls(workspace, chaos_monkey, log_count, dry_run, cmd_log_name)
 
     def acquire_lock(self, restart=False):
-        """Acquire a lock before start running Chaos Monkey."""
+        """Acquire a lock before running Chaos Monkey."""
         if not os.path.isdir(self.workspace):
             sys.stderr.write('Not a directory: {}\n'.format(self.workspace))
             sys.exit(-1)
@@ -93,24 +93,27 @@ class Runner:
                      exclude_group=None, include_command=None,
                      exclude_command=None, run_once=False, expire_time=None):
         """
-        Run a random command from the selected commands."
-        :param run_timeout: Total timeout for running Chaos Monkey in seconds.
+        Run random chaos commands.
+
+        :param run_timeout: Number of seconds to run Chaos Monkey
         :param enablement_timeout: Timeout to wait between enabling and
-        disabling a command.
-        :param include_group: Select commands from only a specified group or
-        set of groups. Example: if it is set to "net", it only selects commands
-        in net group. Comma can be used to specify multiple groups.
-        :param exclude_group: Exclude a group or set of groups from selected
-        commands. Example, if it is set to "net", it excludes all commands
-        in net group.Comma can be used to specify multiple groups.
-        :param include_command: Select commands from only a specified command
-        or set of commands. Example: if it is set to "deny-all,deny-outgoing",
-        it selects the specified commands only.
-        :param exclude_command: Exclude a command or set of commands from
-         selected commands.
+            disabling a command.
+        :param include_group: Select chaos commands from only the
+            given group or set of groups. Multiple groups can be
+            specified in a comma separated list.
+        :param exclude_group: Do not select chaos commands from the
+            given group or set of groups. Multiple groups can be
+            specified in a comma separated list.
+        :param include_command: Explicitly make the given chaos
+            command or set of commands available to run. Multiple
+            commands can be specified in a comma separated list.
+        :param exclude_command: Do not select the given chaos command
+            or set of commands.  Multiple commands can be specified
+            in a comma separated list.
         :param run_once: Run a single Chaos Monkey command.
-        :param expire_time: Chaos Monkey run expire time in UNIX timestamp. If
-        this is set, "run_timeout" will be ignored.
+        :param expire_time: Future UNIX timestamp at which time Chaos
+            should stop. If expire_time is set, "run_timeout" will be
+            ignored.
         :return: None
         """
         self.filter_commands(
@@ -125,7 +128,7 @@ class Runner:
                 break
 
     def _run_command(self, enablement_timeout):
-        """Randomly selected a Chaos Monkey command and executes it,"""
+        """Run a randomly selected chaos command."""
         chaos = random.choice(self.chaos_monkey.chaos)
         logging.info("{}".format(chaos.description))
         cmd_logger = logging.getLogger(self.cmd_log_name)
@@ -145,7 +148,7 @@ class Runner:
             chaos.disable()
 
     def cleanup(self, restart=False):
-        """Called at the end of Chaos Monkey run to perform a cleanup."""
+        """Delete the lock file at the end of the Chaos Monkey run."""
         if self.lock_file:
             try:
                 os.unlink(self.lock_file)
@@ -187,8 +190,7 @@ class Runner:
             self.chaos_monkey.exclude_command(exclude_command)
 
     def replay_commands(self, args):
-        """Replay Chaos Monkey commands from a file. It assumes a valid YAML
-        formatted data.
+        """Replay Chaos Monkey commands from a YAML file.
 
         Example of input file:
         - [deny-incoming, 2]
@@ -228,8 +230,7 @@ class Runner:
         return commands
 
     def _save_command_list(self, commands, args):
-        """Before a shutdown and restart request, this method is called
-        to save the command list to a temporary file."""
+        """Save the command list to a temporary file."""
         file_path = args.replay + self.replay_filename_ext
         with open(file_path, 'w') as f:
             f.write(yaml.dump(commands))
@@ -245,7 +246,7 @@ class Runner:
         return sub_list
 
     def sig_handler(self, sig_num, frame):
-        """Set the stop_chaos flag to request a safe exit."""
+        """Set signal handler functions for SIGTERM and SIGINT."""
         logging.info('Caught signal {}: Waiting for graceful exit.\n'.format(
                      sig_num))
         logging.debug('Flagging stop for runner in workspace: {}'.format(
@@ -266,13 +267,13 @@ class Runner:
 
 
 def setup_sig_handlers(handler):
-    """Set function handler for SIGTERM and SIGINT signals."""
+    """Set signal handler functions for SIGTERM and SIGINT."""
     signal.signal(signal.SIGTERM, handler)
     signal.signal(signal.SIGINT, handler)
 
 
 def display_all_commands():
-    """Display all available commands in formatted string."""
+    """Display all available commands as formatted strings."""
     commands = Runner.list_all_commands()
     groups = commands.keys()
     cmd_str = 'GROUP:  a comma-separated list of group names.\n'
@@ -287,7 +288,7 @@ def display_all_commands():
 
 
 def parse_args(argv=None):
-    """Parse command line argument."""
+    """Parse command line arguments."""
     commands = display_all_commands()
     parser = ArgumentParser(
         description="Run Chaos Monkey.",  usage="[OPTIONS] path",

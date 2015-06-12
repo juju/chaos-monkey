@@ -26,7 +26,9 @@ def restart_chaos_monkey(args):
 
 
 if __name__ == '__main__':
-    """This script is executed by the Upstart init script and responsible for
-    restarting Chaos Monkey after a machine reboot."""
+    """Restart Chaos Monkey after a machine reboot.
+
+    Executed by the Upstart init script to restart the Chaos Monkey.
+    """
     args = parse_args()
     restart_chaos_monkey(args)

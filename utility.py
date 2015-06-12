@@ -18,7 +18,7 @@ from yaml import dump
 
 
 def ensure_dir(path):
-    """Ensure a directory exists. If it doesn't exist, it will create it."""
+    """Ensure a directory exists. If it doesn't exist, it will be created."""
     try:
         os.mkdir(path)
     except OSError as e:
@@ -27,8 +27,11 @@ def ensure_dir(path):
 
 
 def run_shell_command(cmd, quiet_mode=False):
-    """Run a shell command. If quiet_mode is set to true, it won't generate
-    a CalledProcessError exception."""
+    """Run a shell command.
+
+    :param quiet_mode: When False, generate a CalledProcessError
+       exception on error.
+    """
     shell_cmd = cmd.split(' ') if type(cmd) is str else cmd
     output = None
     try:
@@ -87,7 +90,6 @@ class BadRequest(Exception):
 
 class StructuredMessage:
     """Create YAML structured message."""
-
     def __init__(self, *args):
         self.args = args
 
