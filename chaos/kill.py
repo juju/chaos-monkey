@@ -1,3 +1,5 @@
+# Copyright 2015 Canonical Ltd.
+# Licensed under the AGPLv3, see LICENCE file for details.
 import logging
 from subprocess import CalledProcessError
 
@@ -14,7 +16,7 @@ __metaclass__ = type
 
 
 class Kill(ChaosMonkeyBase):
-    """Kills a process or shutdown a unit"""
+    """Kill processes including shutting down a machine and restarting."""
 
     jujud_cmd = 'kill-jujud'
     mongod_cmd = 'kill-mongod'
@@ -29,12 +31,17 @@ class Kill(ChaosMonkeyBase):
         return cls()
 
     def get_pids(self, process):
+        """Return a list of process IDs."""
         pids = run_shell_command('pidof ' + process, quiet_mode=True)
         if not pids:
             return None
         return pids.strip().split(' ')
 
     def kill_jujud(self, quiet_mode=True):
+        """Kill a jujud process.
+
+        :param quiet_mode: When False, generates an exception on error.
+        """
         pids = self.get_pids('jujud')
         if not pids:
             logging.error("Jujud process ID not found")
@@ -44,6 +51,10 @@ class Kill(ChaosMonkeyBase):
         run_shell_command('kill -s SIGKILL ' + pids[0])
 
     def kill_mongodb(self, quiet_mode=True):
+        """Kill mongod process.
+
+        :param quiet_mode: When False, generates an exception on error.
+        """
         pids = self.get_pids('mongod')
         if not pids:
             logging.error("MongoDB process ID not found")
@@ -53,6 +64,10 @@ class Kill(ChaosMonkeyBase):
         run_shell_command('kill -s SIGKILL ' + pids[0])
 
     def restart_unit(self, quiet_mode=False):
+        """Reboot the unit at the operating system level.
+
+        :param quiet_mode: When False, generates an exception on error.
+        """
         try:
             run_shell_command('shutdown -r now')
         except CalledProcessError:
@@ -61,6 +76,7 @@ class Kill(ChaosMonkeyBase):
                 raise
 
     def get_chaos(self):
+        """Return all available commands for the kill group."""
         chaos = list()
         chaos.append(
             Chaos(

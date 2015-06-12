@@ -1,3 +1,5 @@
+# Copyright 2015 Canonical Ltd.
+# Licensed under the AGPLv3, see LICENCE file for details.
 import abc
 
 __metaclass__ = type
@@ -11,6 +13,10 @@ class ChaosMonkeyBase:
 
     @abc.abstractmethod
     def get_chaos(self):
+        """Overridden by derived class and return Chaos objects.
+
+        :return: List of Chaos.
+        """
         raise NotImplemented
 
 

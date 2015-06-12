@@ -1,3 +1,5 @@
+# Copyright 2015 Canonical Ltd.
+# Licensed under the AGPLv3, see LICENCE file for details.
 from argparse import ArgumentParser
 import subprocess
 
@@ -24,5 +26,9 @@ def restart_chaos_monkey(args):
 
 
 if __name__ == '__main__':
+    """Restart Chaos Monkey after a machine reboot.
+
+    Executed by the Upstart init script to restart the Chaos Monkey.
+    """
     args = parse_args()
     restart_chaos_monkey(args)

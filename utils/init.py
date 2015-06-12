@@ -1,12 +1,14 @@
+# Copyright 2015 Canonical Ltd.
+# Licensed under the AGPLv3, see LICENCE file for details.
 import errno
 import logging
 import os
-
 
 __metaclass__ = type
 
 
 class Init:
+    """Generate Upstart init script."""
 
     def __init__(self, init_path, init_script_path, restart_script_path,
                  runner_path):
@@ -35,6 +37,7 @@ class Init:
             init_path, init_script_path, restart_script_path, runner_path)
 
     def install(self, cmd_arg, expire_time):
+        """Install an Upstart script in the /etc/init directory."""
         cmd_arg = Init._remove_args(cmd_arg=cmd_arg)
         with open(self.init_script_path, 'r') as f:
             data = f.read().format(
@@ -66,6 +69,7 @@ class Init:
         return cmd_arg
 
     def uninstall(self):
+        """Remove the Upstart script from /etc/init directory."""
         try:
             os.remove(self.init_path)
             logging.info("Init script removed from {}".format(self.init_path))
