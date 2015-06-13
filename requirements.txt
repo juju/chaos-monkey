@@ -1,2 +1,2 @@
-PyYAML>=3.0
+PyYAML>=3.10
 mock>=1.0
