@@ -30,6 +30,9 @@ class FirewallAction:
     @classmethod
     def rule(cls, rule):
         """Gives an action for creating and deleting a given firewall rule."""
+        if rule.startswith('netem'):
+            return cls('tc qdisc add dev eth0 root {}'.format(rule),
+                       'tc qdisc del dev eth0 root')
         return cls("ufw {}".format(rule), "ufw delete {}".format(rule))
 
     @classmethod
@@ -55,7 +58,6 @@ class FirewallChaos(Chaos):
         self.command_str = name
         self.description = description
         self._actions = list(actions)
-        self._actions.append(FirewallAction.enable())
 
     def enable(self):
         for actions in self._actions:
@@ -81,6 +83,13 @@ class Net(ChaosMonkeyBase):
         allow_in_to_any = FirewallAction.rule("allow in to any")
         deny_in_to_any = FirewallAction.rule("deny in to any")
         deny_out_to_any = FirewallAction.rule("deny out to any")
+        delay = FirewallAction.rule(
+            "netem delay 300ms 20ms distribution normal")
+        delay_long = FirewallAction.rule(
+            'netem delay 5s 1s distribution normal')
+        drop = FirewallAction.rule('netem loss 50% 30%')
+        corrupt = FirewallAction.rule('netem corrupt 50% 30%')
+        duplicate = FirewallAction.rule('netem duplicate 50% 30%')
         return [
             FirewallChaos(
                 'deny-all',
@@ -88,12 +97,14 @@ class Net(ChaosMonkeyBase):
                 allow_ssh,
                 deny_in_to_any,
                 deny_out_to_any,
+                FirewallAction.enable()
                 ),
             FirewallChaos(
                 'deny-incoming',
                 'Deny all incoming network traffic except ssh.',
                 allow_ssh,
                 deny_in_to_any,
+                FirewallAction.enable()
                 ),
             FirewallChaos(
                 'deny-outgoing',
@@ -101,23 +112,54 @@ class Net(ChaosMonkeyBase):
                 allow_ssh,
                 deny_out_to_any,
                 allow_in_to_any,
+                FirewallAction.enable()
                 ),
             FirewallChaos(
                 'deny-state-server',
                 'Deny network traffic to the Juju State-Server',
                 FirewallAction.deny_port_rule(37017),
                 allow_in_to_any,
+                FirewallAction.enable()
                 ),
             FirewallChaos(
                 'deny-api-server',
                 'Deny network traffic to the Juju API Server.',
                 FirewallAction.deny_port_rule(17017),
                 allow_in_to_any,
+                FirewallAction.enable()
                 ),
             FirewallChaos(
                 'deny-sys-log',
                 'Deny network traffic to the Juju SysLog.',
                 FirewallAction.deny_port_rule(6514),
                 allow_in_to_any,
+                FirewallAction.enable()
                 ),
+            FirewallChaos(
+                'delay',
+                'Delay network traffic.',
+                delay,
+                ),
+            FirewallChaos(
+                'delay-long',
+                'Delay network traffic.',
+                delay_long,
+                ),
+            FirewallChaos(
+                'drop',
+                'Drop network packets.',
+                drop,
+                ),
+            FirewallChaos(
+                'corrupt',
+                'Corrupt network packets.',
+                corrupt,
+            ),
+            FirewallChaos(
+                'duplicate',
+                'Duplicate network packets.',
+                duplicate,
+            ),
+
+
         ]
