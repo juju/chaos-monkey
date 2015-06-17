@@ -150,8 +150,9 @@ class TestNet(CommonTestBase):
 
     def assert_tc(self, cmd, netem):
         chaos = self.get_net_chaos(cmd)
-        cmd = 'tc qdisc add dev eth0 root netem {}'.format(netem).split(' ')
-        self.assert_calls(chaos.enable, [call(cmd)])
+        expected = ("tc qdisc add dev eth0 root netem "
+                    "{}".format(netem).split(' '))
+        self.assert_calls(chaos.enable, [call(expected)])
         self.assert_calls(
             chaos.disable,
             [call('tc qdisc del dev eth0 root'.split(' '))])
