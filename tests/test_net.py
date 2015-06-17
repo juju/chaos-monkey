@@ -148,7 +148,31 @@ class TestNet(CommonTestBase):
             [disable_call, delete_allow_in_call,
              call(['ufw', 'delete', 'deny', '6514'])])
 
+    def assert_tc(self, cmd, netem):
+        chaos = self.get_net_chaos(cmd)
+        cmd = 'tc qdisc add dev eth0 root netem {}'.format(netem).split(' ')
+        self.assert_calls(chaos.enable, [call(cmd)])
+        self.assert_calls(
+            chaos.disable,
+            [call('tc qdisc del dev eth0 root'.split(' '))])
+
+    def test_delay(self):
+        self.assert_tc('delay', 'delay 300ms 20ms distribution normal')
+
+    def test_delay_long(self):
+        self.assert_tc('delay-long', 'delay 5s 1s distribution normal')
+
+    def test_drop(self):
+        self.assert_tc('drop', 'loss 50% 30%')
+
+    def test_corrupt(self):
+        self.assert_tc('corrupt', 'corrupt 50% 30%')
+
+    def test_duplicate(self):
+        self.assert_tc('duplicate', 'duplicate 50% 30%')
+
 
 def get_all_net_commands():
     return ['deny-all', 'deny-incoming', 'deny-outgoing',  'deny-state-server',
-            'deny-api-server', 'deny-sys-log']
+            'deny-api-server', 'deny-sys-log', 'delay', 'delay-long',
+            'drop', 'corrupt', 'duplicate']
