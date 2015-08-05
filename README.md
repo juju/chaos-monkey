@@ -21,12 +21,12 @@ Chaos can be run as standalone on the local system by executing `python runner.p
 
 ## Quickstart 
 
-Eager to get started? In this quickstart, we are going to deploy Chaos Monkey locally and run it.
+Eager to get started? In this quickstart, we are going to deploy and run Chaos Monkey. It assumes you have already created a bootstrap [environment](https://jujucharms.com/docs/stable/getting-started#configuring).
 
-Bootstrap a local provider, deploy Ubuntu and Chaos Monkey:
+Bootstrap an environment, deploy Ubuntu and Chaos Monkey:
 
 ```
-juju bootstrap -e local
+juju bootstrap -e my_env
 juju deploy ubuntu
 juju deploy cs:~juju-qa/trusty/chaos-monkey-0
 ```
