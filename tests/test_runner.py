@@ -530,8 +530,8 @@ class TestRunner(CommonTestBase):
     def test_parse_args(self):
         args = parse_args(['path'])
         self.assertEqual(
-            args, Namespace(path='path', enablement_timeout=10,
-                            total_timeout=10, log_count=2, include_group=None,
+            args, Namespace(path='path', enablement_timeout=60,
+                            total_timeout=60, log_count=2, include_group=None,
                             exclude_group=None, include_command=None,
                             exclude_command=None, dry_run=False,
                             run_once=False, restart=False, expire_time=None,
