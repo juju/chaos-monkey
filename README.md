@@ -1,4 +1,6 @@
-# Chaos Monkey
+![Chaos Monkey](https://raw.githubusercontent.com/juju/chaos-monkey/master/icon.png)
+
+## Chaos Monkey
 
 Chaos Monkey provides tooling for injecting errors, instrumenting degraded conditions or causing outages, in a Juju environment. It's used within Juju's continuous integration and testing process to harden Juju core features, as well as charms and bundled solutions, against adverse conditions. 
 
