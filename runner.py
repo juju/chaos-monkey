@@ -296,7 +296,7 @@ def parse_args(argv=None):
     parser.add_argument(
         'path', help='An existing directory, to be used as a workspace.')
     parser.add_argument(
-        '-et', '--enablement-timeout', default=10, type=int,
+        '-et', '--enablement-timeout', default=60, type=int,
         help="Enablement timeout in seconds.", metavar='SECONDS')
     parser.add_argument(
         '-tt', '--total-timeout', type=int, help="Total timeout in seconds.",
